@@ -2,6 +2,7 @@
 import os
 import pickle
 import numpy as np
+import pandas as pd
 
 
 def load_pairs(file_name):
@@ -27,7 +28,7 @@ def load_dictionary(pklfile):
 
     return dict_load
 
-def generate_pairs(directory, batch_size, concept_dictionary):
+def generate_pairs(directory, batch_size):
     '''
     Generate pair of concept for batch trainining
     -- directory: directory contain 
@@ -114,3 +115,24 @@ def load_weight_matrix(npy):
     weight_matrix = np.load(npy)
 
     return weight_matrix
+
+def load_emb(csvemb):
+    '''
+    load csv format embedding
+    -- csvemb: a csv file contain embedding results
+    -- return: a dictionary of embeddings
+    '''
+
+    embeddings = pd.read_csv(csvemb)
+    concept_ids = list(embeddings["standard_concept_id"])
+    embs = list(embeddings["embedding"])
+    assert len(concept_ids) == len(set(concept_ids)), "Duplicated concepts in the data"
+    assert len(concept_ids) == len(embs), "The total number of concepts and embeddigns does not match"
+
+    concept2emb = {}
+    
+    for i in range(len(concept_ids)):
+        concept2emb[str(concept_ids)] = embs[i].split(",")
+
+    return concept2emb
+
