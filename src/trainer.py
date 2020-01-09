@@ -1,12 +1,15 @@
 # put training here.
-from keras.callbacks import ModelCheckpoint, TensorBoard
+import os
+from keras.callbacks import ModelCheckpoint
 from data_loader import generate_pairs
+from data_loader import load_dictionary
 
-class BaseTrain(object):
+class BaseTrainer(object):
     def __init__(self, model, data, config):
         self.model = model
         self.data = data # data is a dir to load batches.
         self.config = config
+        self.concept2id = load_dictionary(config.dictionary.concept2id_dictionary)
 
     def train(self):
         raise NotImplementedError
@@ -32,20 +35,15 @@ class EnhancedModelTrainer(BaseTrainer):
                 verbose=self.config.callbacks.checkpoint_verbose,
             )
         )
-
-        # in case you have tensorboard output.
-        # self.callbacks.append(
-        #     TensorBoard(
-        #         log_dir=self.config.callbacks.tensorboard_log_dir,
-        #         write_graph=self.config.callbacks.tensorboard_write_graph,
-        #     )
-        # )
     
     def train(self):
         history = self.model.fit_generator(
-            generate_pairs(self.data, batch_size=config.trainer.batch_size, concept_dictionary=config.data.concept2id_total), 
-            steps_per_epoch=config.trainer.steps_per_epoch, epochs=config.trainer.epoch, callbacks=self.callbacks)
-    
+            generate_pairs(self.data, batch_size=self.config.trainer.batch_size, 
+            concept_dictionary=self.concept2id), 
+            steps_per_epoch=self.config.trainer.steps_per_epoch, 
+            epochs=self.config.trainer.epoch, 
+            callbacks=self.callbacks)
+            
         self.loss.extend(history.history['loss'])
         self.acc.extend(history.history['acc'])
         self.val_loss.extend(history.history['val_loss'])
