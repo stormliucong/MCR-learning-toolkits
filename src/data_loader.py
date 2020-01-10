@@ -116,23 +116,4 @@ def load_weight_matrix(npy):
 
     return weight_matrix
 
-def load_emb(csvemb):
-    '''
-    load csv format embedding
-    -- csvemb: a csv file contain embedding results
-    -- return: a dictionary of embeddings
-    '''
-
-    embeddings = pd.read_csv(csvemb)
-    concept_ids = list(embeddings["standard_concept_id"])
-    embs = list(embeddings["embedding"])
-    assert len(concept_ids) == len(set(concept_ids)), "Duplicated concepts in the data"
-    assert len(concept_ids) == len(embs), "The total number of concepts and embeddigns does not match"
-
-    concept2emb = {}
-    
-    for i in range(len(concept_ids)):
-        concept2emb[str(concept_ids)] = embs[i].split(",")
-
-    return concept2emb
 
