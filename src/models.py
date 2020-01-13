@@ -8,7 +8,7 @@ from keras.models import Sequential, Model
 from keras.utils import multi_gpu_model
 from keras import optimizers
 from keras.layers.advanced_activations import PReLU
-from data_loader import load_dictionary, load_weight_matrix
+from data_loader import load_dictionary, build_weight_matrix
 
 class BaseModel(object):
     def __init__(self, config):
@@ -23,9 +23,8 @@ class BaseModel(object):
             raise Exception("You have to build the model first.")
 
         print("Saving model...")
-        self.condition_model.save_weights(checkpoint_path)
-        self.drug_model.save_weights(checkpoint_path)
-        print("Model saved")
+        self.model.save_weights(checkpoint_path)
+        print("Model has been saved")
 
     def save_architecture(self, checkpoint_path):
         if self.model is None:
@@ -54,65 +53,60 @@ class EnhancedModel(BaseModel):
 
     def __init__(self,config):
         super(EnhancedModel, self).__init__(config)
-        self.weights_n2v = load_weight_matrix(config.data.pretrain_n2v) 
-        self.weights_patient = load_weight_matrix(config.data.pretrain_n2v) 
+        self.weights_n2v = build_weight_matrix(config.weight_matrix.n2v_weights_dir)
+        self.weights_glove = build_weight_matrix(config.weight_matrix.glove_weights_dir)
         self.concept2id = load_dictionary(config.dictionary.concept2id_dictionary)
-        self.num_gpus = config.settings.num_gpus
+        self.num_gpus = config.trainer.num_gpus
         self.build_model()
 
     def build_model(self):
         # first concept side
         n2v_input_1 = Input(shape=(1,))
-        n2v_emb_layer_1 = Embedding(len(self.concept2id), 128, input_length=1, name="n2vembedding_1", trainable=False) 
+        n2v_emb_layer_1 = Embedding(len(self.concept2id)+1, 128, input_length=1, name="n2vembedding_1", trainable=False) 
         n2v_emb_1 = n2v_emb_layer_1(n2v_input_1)
         n2v_emb_1 = Flatten()(n2v_emb_1)
 
-        patient_input_1 = Input(shape=(1,))
-        patient_emb_layer_1 = Embedding(len(self.concept2id), 128, input_length=1, name="patientembedding_1", trainable=False) 
-        patient_emb_1 = patient_emb_layer_1(patient_input_1)
-        patient_emb_1 = Flatten()(patient_emb_1)
+        glove_input_1 = Input(shape=(1,))
+        glove_emb_layer_1 = Embedding(len(self.concept2id)+1, 128, input_length=1, name="gloveembedding_1", trainable=False) 
+        glove_emb_1 = glove_emb_layer_1(glove_input_1)
+        glove_emb_1 = Flatten()(glove_emb_1)
         
-        concat_emb_1 = concatenate([n2v_emb_1, patient_emb_1])
-        MLP_layer_1_1 = Dense(196, use_bias=False, name="MLP11")(concat_emb_1)
-        MLP_layer_1_1 = BatchNormalization()(MLP_layer_1_1)
-        MLP_layer_1_1 = PReLU()(MLP_layer_1_1)
-        MLP_layer_1_2 = Dense(128, use_bias=False,name="MLP12")(MLP_layer_1_1)
-        MLP_layer_1_2 = BatchNormalization()(MLP_layer_1_2)
-        MLP_layer_1_2 = PReLU()(MLP_layer_1_2)
-        self.condition_model = Model(inputs=[n2v_input_1, patient_input_1], outputs=MLP_layer_1_2,
-        name = "condition_model")
+        concat_emb_1 = concatenate([n2v_emb_1, glove_emb_1])
+        MLP_layer_1_1 = Dense(196, use_bias=False, name="mlp11")(concat_emb_1)
+        MLP_layer_1_1 = BatchNormalization(name="batchnorm11")(MLP_layer_1_1)
+        MLP_layer_1_1 = PReLU(name="prelu11")(MLP_layer_1_1)
+        MLP_layer_1_2 = Dense(128, use_bias=False,name="mlp12")(MLP_layer_1_1)
+        MLP_layer_1_2 = BatchNormalization(name="batchnorm12")(MLP_layer_1_2)
+        MLP_layer_1_2 = PReLU(name="mlp12")(MLP_layer_1_2)
 
         # second_concept_side
         n2v_input_2 = Input(shape=(1,))
-        n2v_emb_layer_2 = Embedding(len(self.concept2id), 128, input_length=1, name="n2vembedding_2", trainable=False) 
+        n2v_emb_layer_2 = Embedding(len(self.concept2id)+1, 128, input_length=1, name="n2vembedding_2", trainable=False) 
         n2v_emb_2 = n2v_emb_layer_2(n2v_input_2)
         n2v_emb_2 = Flatten()(n2v_emb_2)
 
-        patient_input_2 = Input(shape=(1,))
-        patient_emb_layer_2 = Embedding(len(self.concept2id), 128, input_length=1, name="patientembedding_2", trainable=False) 
-        patient_emb_2 = patient_emb_layer_2(patient_input_2)
-        patient_emb_2 = Flatten()(patient_emb_2)
+        glove_input_2 = Input(shape=(1,))
+        glove_emb_layer_2 = Embedding(len(self.concept2id)+1, 128, input_length=1, name="gloveembedding_2", trainable=False) 
+        glove_emb_2 = glove_emb_layer_2(glove_input_2)
+        glove_emb_2 = Flatten()(glove_emb_2)
 
-        concat_emb_2 = concatenate([n2v_emb_2, patient_emb_2])
-        MLP_layer_2_1 = Dense(196, use_bias=False, name="MLP21")(concat_emb_2)
-        MLP_layer_2_1 = BatchNormalization()(MLP_layer_2_1)
-        MLP_layer_2_1 = PReLU()(MLP_layer_2_1)
-        MLP_layer_2_2 = Dense(128, name="MLP22")(MLP_layer_2_1)
-        MLP_layer_2_2 = BatchNormalization()(MLP_layer_2_2)
-        MLP_layer_2_2 = PReLU()(MLP_layer_2_2)
-        self.drug_model = Model(inputs=[n2v_input_2, patient_input_2], outputs=MLP_layer_2_2,
-        name = "drug_model")
+        concat_emb_2 = concatenate([n2v_emb_2, glove_emb_2])
+        MLP_layer_2_1 = Dense(196, use_bias=False, name="mlp21")(concat_emb_2)
+        MLP_layer_2_1 = BatchNormalization(name="batchnorm21")(MLP_layer_2_1)
+        MLP_layer_2_1 = PReLU(name="prelu21")(MLP_layer_2_1)
+        MLP_layer_2_2 = Dense(128, name="mlp22")(MLP_layer_2_1)
+        MLP_layer_2_2 = BatchNormalization(name="batchnorm22")(MLP_layer_2_2)
+        MLP_layer_2_2 = PReLU(name="prelu22")(MLP_layer_2_2)
 
         # loss function to train
-        dot_layer = dot([self.condition_model([n2v_input_1, patient_input_1]), 
-        self.drug_model([n2v_input_2, patient_input_2])], axes=1, normalize=True)
+        dot_layer = dot([MLP_layer_1_2, MLP_layer_2_2], axes=1, normalize=True)
         output = Dense(1, kernel_initializer="random_uniform", activation="sigmoid")(dot_layer)
 
-        self.model = Model(inputs=[n2v_input_1, patient_input_1, n2v_input_2, patient_input_2], outputs=output)
+        self.model = Model(inputs=[n2v_input_1, glove_input_1, n2v_input_2, glove_input_2], outputs=output)
         n2v_emb_layer_1.set_weights(self.weights_n2v)
         n2v_emb_layer_2.set_weights(self.weights_n2v)
-        patient_emb_layer_1.set_weights(self.weights_patient)
-        patient_emb_layer_2.set_weights(self.weights_patient)
+        glove_emb_layer_1.set_weights(self.weights_glove)
+        glove_emb_layer_2.set_weights(self.weights_glove)
 
         # make it a multi-gpu model.
         self.model = multi_gpu_model(self.model, gpus=self.num_gpus)

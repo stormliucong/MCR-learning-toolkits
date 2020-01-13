@@ -105,15 +105,18 @@ def generate_pairs(directory, batch_size):
             yield [X_batch[0], X_batch[0], X_batch[1], X_batch[1]], Y_batch
 
 
-def load_weight_matrix(npy):
+def build_weight_matrix(npy):
     '''
-    load weight matrix from npy
+    build weight matrix for training from npy
     -- npy: a npy file contain weight matrix
     -- return: list of wieghted matrix
     '''
 
     weight_matrix = np.load(npy)
+    weight_matrix_expand = np.zeros((weight_matrix.shape[0]+1, 128))
+    for i in range(weight_matrix.shape[0]):
+        weight_matrix_expand[i+1] = weight_matrix[i]
 
-    return weight_matrix
+    return weight_matrix_expand
 
 

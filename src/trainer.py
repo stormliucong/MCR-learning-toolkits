@@ -38,8 +38,7 @@ class EnhancedModelTrainer(BaseTrainer):
     
     def train(self):
         history = self.model.fit_generator(
-            generate_pairs(self.data, batch_size=self.config.trainer.batch_size, 
-            concept_dictionary=self.concept2id), 
+            generate_pairs(self.data, batch_size=self.config.trainer.batch_size), 
             steps_per_epoch=self.config.trainer.steps_per_epoch, 
             epochs=self.config.trainer.epoch, 
             callbacks=self.callbacks)

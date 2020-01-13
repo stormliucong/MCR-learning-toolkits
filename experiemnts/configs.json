@@ -15,7 +15,8 @@
       "num_epochs": 20,
       "batch_size": 64,
       "validation_split":0.25,
-      "verbose_training": true
+      "verbose_training": true,
+      "num_gpus":2
     },
     "callbacks":{
       "checkpoint_monitor": "val_loss",
@@ -29,5 +30,9 @@
     "dictionary":{
       "concept2id_dir" : "data/concept2id_dictionary",
       "id2concept_dir" : "data/id2concept_dictionary"
+    },
+    "weight_matrix":{
+      "n2v_weights_dir" : "data/n2v_weights",
+      "glove_weights_dir" : "data/glove_weights"
     }
   }
