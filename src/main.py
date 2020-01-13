@@ -1,7 +1,7 @@
 # main program to run the full pipeline
-from models import EnhancedModel
-from trainer import EnhancedModelTrainer
-from generator import EnhancedModelGenerator
+from src.models import EnhancedModel
+from src.trainer import EnhancedModelTrainer
+from src.generator import EnhancedModelGenerator
 from utils.config import process_config, get_config_from_json
 from utils.dirs import create_dirs
 from utils.args import get_args
@@ -27,6 +27,7 @@ def main():
     trainer.train()
     print('Start generating!')
     generator = EnhancedModelGenerator(config)
+    generator.generate_enhanced_rep("savedir")
 
 if __name__ == '__main__':
     main()
