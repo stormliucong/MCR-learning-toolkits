@@ -1,6 +1,7 @@
 from keras.models import Model
 import os
 import numpy as np
+from utils.data_preprocessing import get_condition_concepts, get_drug_concepts
 from src.data_loader import load_dictionary
 from keras.layers import Input, Flatten, concatenate
 from keras.layers.core import Dense, Reshape
@@ -9,24 +10,42 @@ from keras.layers.normalization import BatchNormalization
 from keras.models import Sequential, Model
 from keras.layers.advanced_activations import PReLU
 
-model = ...  # include here your original model
-
-layer_name = 'my_layer'
-intermediate_layer_model = Model(inputs=model.input,
-                                 outputs=model.get_layer(layer_name).output)
-intermediate_output = intermediate_layer_model.predict(data)
-
-
 class EnhancedModelGenerator(object):
     def __init__(self,config):
         self.config = config
         self.condition_model = None
         self.drug_model = None
         self.concept2id = load_dictionary(config.dictionary.concept2id_dictionary)
+        self.condition_codes = None
+        self.drug_codes = None
+        self.get_condition_codes(config.data.csvpair, config.data.glove_condition_emb)
+        self.get_condition_codes(config.data.csvpair, config.data.glove_drug_emb)
         self.build_condition_model()
         self.build_drug_model()
         self.load_condition_model_weights()
         self.load_drug_model_weights()
+
+    def get_condition_codes(self, csvpair, condition_emb):
+        concept2id = self.concept2id
+        condition_set = get_condition_concepts(csvpair, condition_emb)
+        codes = []
+
+        for concept in list(condition_set):
+            code = concept2id[concept]
+            codes.append(code)
+        
+        self.condition_codes = codes
+
+    def get_drug_codes(self, csvpair, drug_emb):
+        concept2id = self.concept2id
+        drug_set = get_drug_concepts(csvpair, drug_emb)
+        codes = []
+
+        for concept in list(drug_set):
+            code = concept2id[concept]
+            codes.append(code)
+
+        self.drug_codes = codes
 
     def build_condition_model(self):
         n2v_input_1 = Input(shape=(1,))
@@ -81,17 +100,21 @@ class EnhancedModelGenerator(object):
         self.drug_model.load_weights(os.path.join(self.config.callbacks.checkpoint_dir, 
         '%s-{epoch:02d}-{val_loss:.2f}.hdf5' % self.config.exp.name), by_name=True)
     
-    def generate_enhanced_rep(self, savedir):
-
+    def generate_enhanced_rep(self):
+        savedir = self.config.data.save_dir
         condition_representations = self.condition_model.predict(range(1, len(self.concept2id)+1))
         drug_representations = self.drug_model.predict(range(1, len(self.concept2id)+1))
 
         enhanced_rep_matrix = np.zeros((len(self.concept2id), 128))
 
-        # enhanced_rep_matrix
+        for i in range(len(self.concept2id)):
+            if (i+1) in (self.condition_codes):
+                enhanced_rep_matrix[i] = condition_representations[i+1]
+            elif (i+1) in self.drug_codes:
+                enhanced_rep_matrix[i] = drug_representations[i+1]
+            else:
+                print("There is a out-of-dictionary concept")
 
-        # save to the savedir
-
-        pass
+        np.save(enhanced_rep_matrix, os.path.join(savedir, "enhanced_rep.npy"))
 
     

@@ -34,5 +34,12 @@
     "weight_matrix":{
       "n2v_weights_dir" : "data/n2v_weights",
       "glove_weights_dir" : "data/glove_weights"
+    },
+    "data":{
+      "save_dir" : "data/",
+      "csvpair" : "data/drug_condition_pair.csv",
+      "glove_condition_emb" : "data/glove_condition_emb.csv",
+      "glove_drug_emb" : "data/glove_drug_emb.csv",
+      "n2v_emb" : "data/n2v_concept.emb"
     }
   }
