@@ -40,6 +40,8 @@
       "csvpair" : "data/drug_condition_pair.csv",
       "glove_condition_emb" : "data/glove_condition_emb.csv",
       "glove_drug_emb" : "data/glove_drug_emb.csv",
-      "n2v_emb" : "data/n2v_concept.emb"
+      "n2v_emb" : "data/n2v_concept.emb",
+      "training_pairs" : "data/training_pairs",
+      "training_batch" : "data/training_batch/"
     }
   }

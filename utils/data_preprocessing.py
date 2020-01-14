@@ -7,14 +7,14 @@ from utils import dictionary
 from tqdm import tqdm
 from keras.preprocessing.sequence import skipgrams
 
-def get_unique_conceptset(csv):
+def get_unique_conceptset(csvpair):
     '''
     read csv format pair data and output unique concept set
     -- csv: csv format concept pairs
     -- return: unique concept set in the concept pair data 
     '''
 
-    pairs = pd.read_csv(csv)
+    pairs = pd.read_csv(csvpair)
     
     concept_list1 = list(map(str, list(pairs["concept_id_1"])))
     concept_list2 = list(map(str, list(pairs["concept_id_2"])))

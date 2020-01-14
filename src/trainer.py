@@ -1,22 +1,21 @@
-# put training here.
 import os
 from keras.callbacks import ModelCheckpoint
 from data_loader import generate_pairs
 from data_loader import load_dictionary
 
 class BaseTrainer(object):
-    def __init__(self, model, data, config):
+    def __init__(self, model, config):
         self.model = model
-        self.data = data # data is a dir to load batches.
+        self.data = config.data.training_batch
         self.config = config
-        self.concept2id = load_dictionary(config.dictionary.concept2id_dictionary)
+        self.concept2id = load_dictionary(config.dictionary.concept2id_dir)
 
     def train(self):
         raise NotImplementedError
 
 class EnhancedModelTrainer(BaseTrainer):
     def __init__(self, model, data, config):
-        super(EnhancedModelTrainer, self).__init__(model, data, config)
+        super(EnhancedModelTrainer, self).__init__(model, config)
         self.callbacks = []
         self.loss = []
         self.acc = []
