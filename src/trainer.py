@@ -1,7 +1,6 @@
 import os
 from keras.callbacks import ModelCheckpoint
-from data_loader import generate_pairs
-from data_loader import load_dictionary
+from src.data_loader import generate_pairs,load_dictionary
 
 class BaseTrainer(object):
     def __init__(self, model, config):
@@ -14,7 +13,7 @@ class BaseTrainer(object):
         raise NotImplementedError
 
 class EnhancedModelTrainer(BaseTrainer):
-    def __init__(self, model, data, config):
+    def __init__(self, model, config):
         super(EnhancedModelTrainer, self).__init__(model, config)
         self.callbacks = []
         self.loss = []
