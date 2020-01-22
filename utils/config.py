@@ -21,6 +21,9 @@ def get_config_from_json(json_file):
 
 
 def process_config(json_file):
+    if json_file == "None":
+        json_file = "/home/jl5307/current_research/work/deep-learning-skeleton/experiments/configs.json"
+
     config, _ = get_config_from_json(json_file)
     config.callbacks.tensorboard_log_dir = os.path.join("experiments", time.strftime("%Y-%m-%d/",time.localtime()), config.exp.name, "logs/")
     config.callbacks.checkpoint_dir = os.path.join("experiments", time.strftime("%Y-%m-%d/",time.localtime()), config.exp.name, "checkpoints/")

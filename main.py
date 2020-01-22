@@ -16,7 +16,7 @@ def main():
         config = process_config(args.config)
     except:
         print("missing or invalid arguments")
-        exit(0)
+        #exit(0)
     # create the experiments dirs
     create_dirs([config.callbacks.checkpoint_dir])
 

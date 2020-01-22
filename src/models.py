@@ -8,7 +8,7 @@ from keras.models import Sequential, Model
 from keras.utils import multi_gpu_model
 from keras import optimizers
 from keras.layers.advanced_activations import PReLU
-from data_loader import load_dictionary, build_weight_matrix
+from src.data_loader import load_dictionary, build_weight_matrix
 
 class BaseModel(object):
     def __init__(self, config):
