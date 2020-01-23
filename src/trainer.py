@@ -1,7 +1,11 @@
 import os
 from keras.callbacks import ModelCheckpoint
+<<<<<<< HEAD
 from src.data_loader import generate_pairs
 from src.data_loader import load_dictionary
+=======
+from src.data_loader import generate_pairs,load_dictionary
+>>>>>>> a3c980c6c002f1448ce43c218205cce1a600df02
 
 class BaseTrainer(object):
     def __init__(self, model, config):

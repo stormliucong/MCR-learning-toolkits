@@ -4,3 +4,8 @@ data
 models
 tools
 .conceptemb
+.experiments
+.experiements
+ **/__pycache__/
+*.pyc
+
