@@ -11,9 +11,8 @@ class EnhancingNet(tf.keras.Model):
         self.InputNet = None
         self.ContextNet = None
         self.optimizer = tf.keras.optimizers.Adadelta()
-        self.gradients = None
         self.epoch_loss_avg = []
-        self.n2v_emb = #load_emb_matrix(config.dir)
+        self.n2v_emb = #load_emb_matrix(config.dir) 
         self.glove_emb = #load_emb_matrix(config.dir)
         self.concept2id = #load_dict(config.dir)
         self.num_gpus = self.config.training_settings.num_gpus
