@@ -71,3 +71,19 @@ def to_SparseMatrix(data):
                              shape=(n_users, n_items))
     return csr_matrix
 
+def get_ids(patient, total_concepts_num):
+    """build positive pairs and negative pairs from the given patient record"""
+    i_vec = []
+    j_vec = []
+    n_vec = []
+    sample_set = set(range(1, total_concepts_num+1)) - set(patient)
+    num_nsamples = len(patient) - 1
+    
+    for i in range(len(patient)):
+        n_vec.extend(random.sample(sample_set, num_nsamples))
+        for k in range(len(patient)):
+            if i == k : continue
+            i_vec.append(patient[i])
+            j_vec.append(patient[k])
+
+    return i_vec, j_vec, n_vec

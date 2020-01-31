@@ -2,6 +2,7 @@ import tensorflow as tf
 import random
 import numpy as np
 import os
+from utils.data_preprocessing import get_ids
 from utils.data_loader import load_dict, load_emb_matrix
 
 class EnhancingNet(tf.keras.Model):
@@ -12,8 +13,8 @@ class EnhancingNet(tf.keras.Model):
         self.ContextNet = None
         self.optimizer = tf.keras.optimizers.Adadelta()
         self.epoch_loss_avg = []
-        self.n2v_emb = #load_emb_matrix(config.dir) 
-        self.glove_emb = #load_emb_matrix(config.dir)
+        self.n2v_emb = # load_emb_matrix(config.dir) 
+        self.glove_emb = # load_emb_matrix(config.dir)
         self.concept2id = #load_dict(config.dir)
         self.num_gpus = self.config.training_settings.num_gpus
         self.build_InputNet()
@@ -89,7 +90,7 @@ def model_train(model, data_dir, config):
             loss, gradients = compute_gradients(model, x_train)
             model.optimizer.apply_gradients(zip(gradients, model.trainable_variables))
             
-            loss_avg(loss) # fix loss printing
+            loss_avg(loss) 
             print("Step {}: Loss: {:.4f}".format(model.optimizer.iterations.numpy(), loss))
         
         if epoch % 1 == 0:
