@@ -9,3 +9,7 @@ def evaluate_structural_info():
 
 def evaluate_cooccur_info():
     pass
+
+def evaluate_phe_sim():
+    """use phe_pairs to evaluate representations"""
+    pass

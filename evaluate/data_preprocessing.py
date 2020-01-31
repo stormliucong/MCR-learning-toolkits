@@ -1,8 +1,10 @@
 import numpy as np
 import pandas as pd 
+import os
 import ossaudiodev
 from utils.dictionary import load_dictionary
 from tqdm import tqdm
+import itertools
 
 
 def split_to_quartiles(indexlist):
@@ -56,4 +58,41 @@ def get_cd_rank_quartiles():
 
 def get_total_rank_quartiles():
     pass
+
+def get_phekb_dict(phekb_data_dir, concept2id):
+    """return pheKB dictionary {phe_algorithm : list of concepts in the algorithm}"""
+    phe_data = pd.DataFrame.from_csv(phekb_data_dir, sep="\t")
+    phe_data["index"] = range(len(phe_data))
+
+    phe_set = set(list(phe_data["phenotype"]))
+    filtered_df = pd.concat([phe_data.loc[phe_data["standard_domain"] == ("Condition")],
+                      phe_data.loc[phe_data["standard_domain"] == ("Drug")]], ignore_index=True)
+    
+    phe_dict = {}
+    total_set = set(concept2id.keys())
+    for phenotype in phe_set:
+        concepts = list(filtered_df[filtered_df["phenotype"] == phenotype]["standard_concept_id"])
+        concept_set = set(map(str, map(int, list(map(float, concepts)))))
+        intersections = total_set.intersection(concept_set)
+        concept_list = list(map(str, intersections))
+        phe_dict.update({phenotype : list(concept_list)})
+    
+    return phe_dict
+
+def get_phekb_pairs(phe_dict):
+    """return positive pairs under a specific phe algorithm
+    phe_algorithm : list of positive pairs"""
+
+    phe_pairs = {}
+    for phe in phe_dict.keys():
+        concept_list = phe_dict[phe]
+        combinations = itertools.combinations(concept_list, 2)
+        phe_pairs[phe] = combinations
+    
+    return phe_pairs
+
+
+
+
+
 
