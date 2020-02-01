@@ -1,38 +1,40 @@
 import pandas as pd
 from tqdm import tqdm
+import random
 import numpy as np
 import scipy.sparse as sparse
 from src.data_loader import load_dictionary
 
-
 def to_conceptlist(csr_matrix):
     """csr matrix to a list of patient record that consists of several concepts"""
-
     patient_list = []
-    dense_matrix = csr_matrix.todense()
 
-    for i in tqdm(range(dense_matrix.shape[0])):
-        patient_list.append(list(dense_matrix[i].nonzero()[1]))
+    for i in tqdm(range(csr_matrix.shape[0])):
+        dense_row = csr_matrix[i].todense()
+        concept_record = list(dense_row.nonzero()[1])
+        if len(concept_record) > 1:
+            patient_list.append(concept_record)
     
     return patient_list
 
-def to_CSR(config):
-
-    concept2id = load_dictionary(config.dict_dir)
+def to_csr(config):
 
     condition_df = raw_toDataFrame(config.data_dir)
     drug_df = raw_toDataFrame(config.data_dir)
     concat_df = pd.concat([condition_df, drug_df], ignore_index=True)
     
     patient_count = get_count(concat_df, "patient_id")
+    concept_count = get_count(concat_df, "concept_id")
     unique_pid = patient_count.index
+    unique_cid = concept_count.index
     patient2id = dict((uid, i) for (i, uid) in enumerate(unique_pid))
+    concept2id = dict((cid, i) for (i, cid) in enumerate(unique_cid))
 
     pid = map(lambda x: patient2id[x], concat_df["patient_id"])
     cid = map(lambda x: concept2id[x], concat_df["concept_id"])
     patient_df = pd.DataFrame(data={'pid': list(pid), 'cid': list(cid)})
 
-    return to_SparseMatrix(patient_df)
+    return to_SparseMatrix(patient_df), concept2id
 
 def raw_toDataFrame(data_dir):
     concept_record = []
