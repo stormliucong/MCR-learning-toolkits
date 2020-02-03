@@ -89,3 +89,28 @@ def get_ids(patient, total_concepts_num):
             j_vec.append(patient[k])
 
     return i_vec, j_vec, n_vec
+
+def get_permutations(seq, i_vec, j_vec):
+	for first in seq:
+		for second in seq:
+			if first == second: 
+                continue
+			i_vec.append(first)
+            j_vec.append(second)
+
+
+def padMatrix(x_batch):
+    """
+    """
+    p_vec = []
+    i_vec = []
+    j_vec = []
+
+    for idx, seq in enumerate(x_batch):
+        get_permutations(seq, i_vec, j_vec)
+        p_vec.append([idx] * (len(seq) * (len(seq)-1)) )
+
+    return p_vec, i_vec, j_vec
+
+
+

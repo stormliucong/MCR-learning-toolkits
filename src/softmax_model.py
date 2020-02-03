@@ -57,20 +57,32 @@ class EnhancingNet(tf.keras.Model):
 
         return enhanced_rep
 
+    def compute_X(self, batch_size):
+        self.X = tf.Variable(self.get_enhanced_rep())
+        self.v = 
+
 @tf.function
-def compute_loss(model, x):
-    i_vec, j_vec, n_vec = get_ids(x, len(model.concept2id))
-    positive_product = tf.math.multiply(model.InputNet(model.encode(i_vec)), model.ContextNet(model.encode(j_vec)))
-    negative_product = tf.math.multiply(model.InputNet(model.encode(i_vec)), model.ContextNet(model.encode(n_vec)))
+def compute_loss(model, x_batch):
+    """
+    --model: Enhancing model
+    --x_batch: designated size of x
+    --k: total number of concepts
+    """
+    p_vec, i_vec, j_vec = padMatrix(x_batch) # need padMatrix
+    model.compute_normat(x_batch[0])
+    matmul_vX = tf.matmul(model.v, model.X) # n * l * k matrix
+    denom_mat = tf.reduce_sum(matmul_vX, axis=-1) # n * l matrix
 
-    positive_noms = tf.math.reduce_sum(tf.split(tf.math.reduce_sum(positive_product, axis=1), len(x)), axis=1)
-    negative_noms = tf.math.reduce_sum(tf.split(tf.math.reduce_sum(negative_product, axis=1), len(x)), axis=1)
-    noms = tf.exp(positive_noms)
-    denoms = tf.exp(tf.math.add(positive_noms, negative_noms))
+    nom_ids = tf.transpose([p_vec, i_vec, j_vec]) # length = n * l(l-1)
+    denom_ids = tf.transpose([p_vec, i_vec]) # length = n * l(l-1)
 
-    loss = tf.math.reduce_sum(-tf.math.log(noms / denoms), axis=0)
+    noms = tf.exp(tf.gather_nd(matmul_vX, nom_ids))
+    denoms = tf.exp(tf.gather_nd(denom_mat, denom_ids))
 
-    return loss
+    batch_loss = tf.math.reduce_sum(-tf.math.log(noms / denoms), axis=0) / x_batch[0]
+    # batch training : take average
+
+    return batch_loss
 
 @tf.function
 def compute_gradients(model, x):
