@@ -65,4 +65,3 @@ class EnhancingNet(tf.keras.Model):
         self.v = tf.reshape(self.InputNet(self.encode(flatten_batch)), 
         [len(x_batch), self.max_len, 128]) # batch_size * max_len * emb_dim
         # add self.max_len
-

@@ -1,18 +1,24 @@
 import tensorflow as tf
 import numpy as np
 import os
+from utils.config import get_config_from_json
 from src.softmax_model import EnhancingNet
 
 def load_train_data(data_dir):
     return np.load(data_dir)
 
-def get_permutations(seq, i_vec, j_vec):
+def get_permutations(idx, seq, i_vec, j_vec, p_vec):
     for first in seq:
         for second in seq:
+            if first == 0:
+                continue
+            if second == 0:
+                continue
             if first == second: 
                 continue
             i_vec.append(first)
             j_vec.append(second)
+            p_vec.append(idx)
 
 def padMatrix(x_batch):
     """
@@ -22,13 +28,14 @@ def padMatrix(x_batch):
     j_vec = []
     
     for idx, seq in enumerate(x_batch):
-        get_permutations(seq, i_vec, j_vec)
-        p_vec.append([idx] * (len(seq) * (len(seq)-1)) )
+        get_permutations(idx, seq, i_vec, j_vec, p_vec)
+    p_vec = tf.reshape(p_vec, [-1])
 
     return p_vec, i_vec, j_vec
 
-def model_train(model, config):
+def model_train(model, json_dir):
     
+    config = get_config_from_json(json_dir)
     train_data = load_train_data(config.dir)
     # need data_load functions
     batch_size = config.batch_size
@@ -63,7 +70,8 @@ def compute_loss(model, x_batch, p_vec, i_vec, j_vec):
     """
     model.compute_X(len(x_batch))
     model.compute_v(x_batch)
-    matmul_vX = tf.matmul(model.v, tf.transpose(model.X, [0,2,1])) # n * l * k matrix
+    matmul_vX = tf.linalg.normalize(
+        tf.matmul(model.v, tf.transpose(model.X, [0,2,1])), axis=-1, ord=1) # n * l * k matrix
     denom_mat = tf.reduce_sum(matmul_vX, axis=-1) # n * l matrix
 
     nom_ids = tf.transpose([p_vec, i_vec, j_vec]) # length = n * l(l-1)
@@ -72,7 +80,7 @@ def compute_loss(model, x_batch, p_vec, i_vec, j_vec):
     noms = tf.exp(tf.gather_nd(matmul_vX, nom_ids))
     denoms = tf.exp(tf.gather_nd(denom_mat, denom_ids))
 
-    batch_loss = tf.math.reduce_sum(-tf.math.log(noms / denoms), axis=0) / x_batch[0]
+    batch_loss = tf.math.reduce_sum(-tf.math.log(noms / denoms), axis=0) / len(x_batch)
     # batch training : take average
 
     return batch_loss
