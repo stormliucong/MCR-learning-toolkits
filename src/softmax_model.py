@@ -17,6 +17,7 @@ class EnhancingNet(tf.keras.Model):
         self.glove_emb = load_emb_matrix()
         self.concept2id = #load_dict(config.dir)
         self.num_gpus = self.config.training_settings.num_gpus
+        self.max_len = None
         self.build_InputNet()
         self.build_ContextNet()
 
@@ -58,12 +59,13 @@ class EnhancingNet(tf.keras.Model):
     def compute_X(self, batch_size):
         self.get_enhanced_rep()
         self.X = tf.reshape(tf.tile(self.enhanced_rep, [batch_size, 1]), 
-        [batch_size, len(self.concept2id), 128] # batch_size * total_concepts * emb_dim
+        [batch_size, len(self.concept2id), 128]) # batch_size * total_concepts * emb_dim
 
     def compute_v(self, x_batch):
         flatten_batch = tf.reshape(x_batch, [-1])
         self.v = tf.reshape(self.InputNet(self.encode(flatten_batch)), 
-        [x_batch.shape[0], x_batch.shape[1], 128] # batch_size * max_len * emb_dim
+        [len(x_batch), self.max_len, 128]) # batch_size * max_len * emb_dim
+        # add self.max_len
 
 @tf.function
 def compute_loss(model, x_batch):
@@ -72,7 +74,7 @@ def compute_loss(model, x_batch):
     --x_batch: designated size of x
     --k: total number of concepts
     """
-    p_vec, i_vec, j_vec = padMatrix(x_batch) # need padMatrix
+    p_vec, i_vec, j_vec = padMatrix(x_batch) 
     model.compute_normat(x_batch[0])
     matmul_vX = tf.matmul(model.v, tf.transpose(model.X, [0,2,1])) # n * l * k matrix
     denom_mat = tf.reduce_sum(matmul_vX, axis=-1) # n * l matrix
@@ -89,28 +91,8 @@ def compute_loss(model, x_batch):
     return batch_loss
 
 @tf.function
-def compute_gradients(model, x):
+def compute_gradients(model, x_batch):
     with tf.GradientTape() as tape:
-        loss = compute_loss(model, x)
+        loss = compute_loss(model, x_batch)
         
     return loss, tape.gradient(loss, model.trainable_variables)
-
-def model_train(model, data_dir, config):
-    
-    # train_data = load_data(dir)
-    # need data_load functions
-    for epoch in range(config.num_epochs):
-        loss_avg = tf.keras.metrics.Mean()
-
-        for x_train in train_dataset: 
-            loss, gradients = compute_gradients(model, x_train)
-            model.optimizer.apply_gradients(zip(gradients, model.trainable_variables))
-            
-            loss_avg(loss) 
-            print("Step {}: Loss: {:.4f}".format(model.optimizer.iterations.numpy(), loss))
-        
-        if epoch % 1 == 0:
-            avg_loss = loss_avg.result()
-            model.epoch_loss_avg.append(avg_loss)
-            model.save_weights(os.path.join(config.save_dir, "e{:03d}_loss{:.4f}.ckpt".format(epoch, avg_loss)))
-            print("Epoch {}: Loss: {:.4f}".format(epoch, loss_avg.result()))
