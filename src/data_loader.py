@@ -21,6 +21,8 @@ def load_pairs(file_name):
 
     return wid_pairs
 
+def load_emb_matrix(npydir):
+    return np.load(npydir)
 
 def load_dictionary(pklfile):
     f = open(pklfile, "rb")
