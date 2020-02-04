@@ -53,13 +53,17 @@ class EnhancingNet(tf.keras.Model):
     
     def get_enhanced_rep(self):
         """Intended to use after loading trained weights"""
-        enhanced_rep = self.InputNet(range(len(model.concept2id)+1))
-
-        return enhanced_rep
+        self.enhanced_rep = self.InputNet(self.encode(list(range(len(model.concept2id)))))
 
     def compute_X(self, batch_size):
-        self.X = tf.Variable(self.get_enhanced_rep())
-        self.v = 
+        self.get_enhanced_rep()
+        self.X = tf.reshape(tf.tile(self.enhanced_rep, [batch_size, 1]), 
+        [batch_size, len(self.concept2id), 128] # batch_size * total_concepts * emb_dim
+
+    def compute_v(self, x_batch):
+        flatten_batch = tf.reshape(x_batch, [-1])
+        self.v = tf.reshape(self.InputNet(self.encode(flatten_batch)), 
+        [x_batch.shape[0], x_batch.shape[1], 128] # batch_size * max_len * emb_dim
 
 @tf.function
 def compute_loss(model, x_batch):
@@ -70,7 +74,7 @@ def compute_loss(model, x_batch):
     """
     p_vec, i_vec, j_vec = padMatrix(x_batch) # need padMatrix
     model.compute_normat(x_batch[0])
-    matmul_vX = tf.matmul(model.v, model.X) # n * l * k matrix
+    matmul_vX = tf.matmul(model.v, tf.transpose(model.X, [0,2,1])) # n * l * k matrix
     denom_mat = tf.reduce_sum(matmul_vX, axis=-1) # n * l matrix
 
     nom_ids = tf.transpose([p_vec, i_vec, j_vec]) # length = n * l(l-1)
