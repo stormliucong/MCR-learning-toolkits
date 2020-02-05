@@ -55,9 +55,13 @@ class EnhancingNet(tf.keras.Model):
         """Intended to use after loading trained weights"""
         self.enhanced_rep = self.InputNet(self.encode(list(range(len(self.concept2id)))))
 
+    def get_context_rep(self):
+        """Intended to use after loading trained weights"""
+        self.context_rep = self.ContextNet(self.encode(list(range(len(self.concept2id)))))
+
     def compute_X(self, batch_size):
-        self.get_enhanced_rep()
-        self.X = tf.reshape(tf.tile(self.enhanced_rep, [batch_size, 1]), 
+        self.get_context_rep()
+        self.X = tf.reshape(tf.tile(self.context_rep, [batch_size, 1]), 
         [batch_size, len(self.concept2id), 128]) # batch_size * total_concepts * emb_dim
 
     def compute_v(self, x_batch):
