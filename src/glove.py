@@ -12,7 +12,7 @@ class GloVe():
           self.max_vocab_size = max_vocab_size
           self.min_occurrences = min_occurrences
           self.scaling_factor = scaling_factor
-          self.cooccurrence_ceil = cooccurr_ceil
+          self.cooccurrence_ceil = cooccurrence_ceil
           self.batch_size = batch_size
           self.learning_rate = learning_rate
           self.vocab_size = 0
@@ -33,10 +33,10 @@ class GloVe():
           scaling_factor = tf.constant([self.scaling_factor], dtype=tf.float64)
           
           target_embeddings = tf.Variable(
-               tf.random_uniform([self.vocab_size, self.embedding_size], 1.0, -1.0),
+               tf.random_uniform([self.vocab_size, self.embedding_dim], 1.0, -1.0),
                name="target_embeddings")
           context_embeddings = tf.Variable(
-               tf.random_uniform([self.vocab_size, self.embedding_size], 1.0, -1.0),
+               tf.random_uniform([self.vocab_size, self.embedding_dim], 1.0, -1.0),
                name="context_embeddings")
 
           target_biases = tf.Variable(tf.random_uniform([self.vocab_size], 1.0, -1.0),
