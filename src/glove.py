@@ -92,7 +92,7 @@ class GloVe(tf.keras.Model):
           assert len(i_ids) == len(co_occurs), "The length of the data are not the same"
           return i_ids, j_ids, co_occurs
 
-     def train_GloVe(self, num_epochs, save_dir):
+     def train_GloVe(self, num_epochs, save_dir, saving_term):
           i_ids, j_ids, co_occurs = self.prepare_batch()
           total_batch = int(np.ceil(len(i_ids) / self.batch_size))
           cost_avg = tf.keras.metrics.Mean()
@@ -115,4 +115,7 @@ class GloVe(tf.keras.Model):
                     avg_loss = cost_avg.result()
                     print("Epoch {}: Loss: {:.4f}".format(epoch, avg_loss))
                     self.epoch_loss_avg.append(avg_loss)
-                    #save weights to the save_dir
+                    
+               if (epoch % saving_term) == 0:
+                    model.save_weights(os.path.join(save_dir, 
+                    "e{:03d}_loss{:.4f}.ckpt".format(epoch, avg_loss)))
