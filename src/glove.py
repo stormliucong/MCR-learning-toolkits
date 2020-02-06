@@ -6,7 +6,7 @@ import random
 import sys
 
 class GloVe(tf.keras.Model):
-     def __init__(self, embedding_dim=128, max_vocab_size=10000, min_occurrences=1, 
+     def __init__(self, embedding_dim=128, max_vocab_size=100, min_occurrences=1, 
      scaling_factor=0.75, cooccurrence_ceil=100, batch_size=512, learning_rate=0.01):
           super(GloVe, self).__init__()
           self.embedding_dim = embedding_dim
@@ -34,16 +34,18 @@ class GloVe(tf.keras.Model):
           self.comatrix = self.comap.todense() + 1
 
      def init_params(self):
-          self.target_embeddings = tf.Variable(
-               tf.random.uniform([self.vocab_size, self.embedding_dim], 1.0, -1.0),
-               name="target_embeddings")
-          self.context_embeddings = tf.Variable(
-               tf.random.uniform([self.vocab_size, self.embedding_dim], 1.0, -1.0),
-               name="context_embeddings")
-          self.target_biases = tf.Variable(tf.random.uniform([self.vocab_size], 1.0, -1.0),
-          name='target_biases')
-          self.context_biases = tf.Variable(tf.random.uniform([self.vocab_size], 1.0, -1.0),
-          name="context_biases")
+          with tf.device("/cpu:0"):
+               """must be implemented with cpu-only env since this is sparse updating"""
+               self.target_embeddings = tf.Variable(
+                    tf.random.uniform([self.vocab_size, self.embedding_dim], 1.0, -1.0),
+                    name="target_embeddings")
+               self.context_embeddings = tf.Variable(
+                    tf.random.uniform([self.vocab_size, self.embedding_dim], 1.0, -1.0),
+                    name="context_embeddings")
+               self.target_biases = tf.Variable(tf.random.uniform([self.vocab_size], 1.0, -1.0),
+               name='target_biases')
+               self.context_biases = tf.Variable(tf.random.uniform([self.vocab_size], 1.0, -1.0),
+               name="context_biases")
 
      def compute_cost(self, x):
           """x = [target_ind, context_ind, co_occurrence_count]"""
@@ -106,8 +108,8 @@ class GloVe(tf.keras.Model):
                     cost_avg(cost) 
                     print("Step {}: Loss: {:.4f}".format(self.optimizer.iterations.numpy(), cost))
 
-          if (epoch % 1) == 0: 
-               avg_loss = cost_avg.result()
-               print("Epoch {}: Loss: {:.4f}".format(epoch, avg_loss))
-               self.epoch_loss_avg.append(avg_loss)
-               #save weights to the save_dir
+               if (epoch % 1) == 0: 
+                    avg_loss = cost_avg.result()
+                    print("Epoch {}: Loss: {:.4f}".format(epoch, avg_loss))
+                    self.epoch_loss_avg.append(avg_loss)
+                    #save weights to the save_dir
