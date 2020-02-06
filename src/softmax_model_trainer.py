@@ -68,11 +68,11 @@ def compute_loss(model, x_batch, p_vec, i_vec, j_vec):
     --x_batch: designated size of x
     --k: total number of concepts
     """
-    model.compute_X(len(x_batch))
+    model.get_context_rep()
     model.compute_v(x_batch)
     matmul_vX = tf.linalg.normalize(
-        tf.matmul(model.v, tf.transpose(model.X, [0,2,1])), axis=-1, ord=1) # n * l * k matrix
-    denom_mat = tf.reduce_sum(matmul_vX, axis=-1) # n * l matrix
+        tf.matmul(model.v, tf.transpose(model.context_rep)), axis=-1, ord=1)[0] # n * l * k matrix
+    denom_mat = tf.math.reduce_sum(matmul_vX, axis=-1) # n * l matrix
 
     nom_ids = tf.transpose([p_vec, i_vec, j_vec]) # length = n * l(l-1)
     denom_ids = tf.transpose([p_vec, i_vec]) # length = n * l(l-1)
