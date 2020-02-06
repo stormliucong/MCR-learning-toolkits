@@ -99,6 +99,8 @@ class GloVe(tf.keras.Model):
 
           for epoch in range(num_epochs):
 
+               progbar = tf.keras.utils.Progbar(len(i_ids))
+
                for i in range(total_batch):
                     i_batch = i_ids[i * self.batch_size : (i+1) * self.batch_size]
                     j_batch = j_ids[i * self.batch_size : (i+1) * self.batch_size]
@@ -106,6 +108,7 @@ class GloVe(tf.keras.Model):
                     cost, gradients = self.compute_gradients([i_batch, j_batch, co_occurs_batch])
                     self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
                     cost_avg(cost) 
+                    progbar.add(self.batch_size)
                     print("Step {}: Loss: {:.4f}".format(self.optimizer.iterations.numpy(), cost))
 
                if (epoch % 1) == 0: 
