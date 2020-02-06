@@ -15,9 +15,10 @@ class GloVe(tf.keras.Model):
           self.scaling_factor = scaling_factor
           self.cooccurrence_ceil = cooccurrence_ceil
           self.batch_size = batch_size
-          self.learning_rate = learning_rate
           self.vocab_size = 0
           self.comap = None
+          self.comatrix = None
+          self.optimizer = tf.keras.optimizers.Adagrad(learning_rate=learning_rate)
           self.epoch_loss_avg = []
      
      def build_comap(self, vocab, corpus):
@@ -28,7 +29,9 @@ class GloVe(tf.keras.Model):
                visit_encode = [vocab[concept] for concept in visit]
                permutations = itertools.permutations(visit_encode, 2)
                for p in permutations:
-                    self.comap[p[0], p[1]] += 1
+                    self.comap[p[0], p[1]] += 1 # +1 additive shift to avoid diverging log
+
+          self.comatrix = self.comap.todense() + 1
 
      def init_params(self):
           self.target_embeddings = tf.Variable(
@@ -44,7 +47,7 @@ class GloVe(tf.keras.Model):
 
      def compute_cost(self, x):
           """x = [target_ind, context_ind, co_occurrence_count]"""
-          target_emb = tf.nn.embedding_lookup([self.target_embeddicngs], x[0])
+          target_emb = tf.nn.embedding_lookup([self.target_embeddings], x[0])
           context_emb = tf.nn.embedding_lookup([self.context_embeddings], x[1])
           target_bias = tf.nn.embedding_lookup([self.target_biases], x[0])
           context_bias = tf.nn.embedding_lookup([self.context_biases], x[1])
@@ -81,7 +84,7 @@ class GloVe(tf.keras.Model):
                     if i == j: continue
                     i_ids.append(i)
                     j_ids.append(j)
-                    co_occurs.append(self.comap(i, j))
+                    co_occurs.append(self.comatrix[i, j])
      
           assert len(i_ids) == len(j_ids), "The length of the data are not the same"
           assert len(i_ids) == len(co_occurs), "The length of the data are not the same"
