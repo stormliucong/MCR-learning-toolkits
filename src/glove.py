@@ -5,29 +5,39 @@ import itertools
 import random
 import sys
 import os
+import pickle
 
 class GloVe(tf.keras.Model):
-     def __init__(self, embedding_dim=128, max_vocab_size=100, min_occurrences=1, 
-     scaling_factor=0.75, cooccurrence_ceil=100, batch_size=512, learning_rate=0.01):
+     def __init__(self, embedding_dim=128, max_vocab_size=100, 
+     scaling_factor=0.75, batch_size=512, learning_rate=0.01):
           super(GloVe, self).__init__()
           self.embedding_dim = embedding_dim
           self.max_vocab_size = max_vocab_size
-          self.min_occurrences = min_occurrences
           self.scaling_factor = scaling_factor
-          self.cooccurrence_ceil = cooccurrence_ceil
           self.batch_size = batch_size
           self.vocab_size = 0
+          self.concept2id = None
           self.comap = None
           self.comatrix = None
           self.optimizer = tf.keras.optimizers.Adagrad(learning_rate=learning_rate)
           self.epoch_loss_avg = []
+
+     def build_dict(self, corpus):
+          tokenizer = tf.keras.preprocessing.text.Tokenizer()
+          tokenizer.fit_on_texts(corpus)
+          self.concept2id = tokenizer.word_index
+
+     def save_dict(self, save_dir):
+          with open(save_dir + "/concept2id.pkl", "wb") as f:
+               pickle.dump(self.concept2id, f)
+          print("concept2id successfully saved in the savedir")
      
-     def build_comap(self, vocab, corpus):
-          self.vocab_size = len(vocab)
+     def build_comap(self, corpus):
+          self.vocab_size = len(self.concept2id)
           self.comap = sparse.lil_matrix((self.vocab_size, self.vocab_size), dtype=np.float64)
 
           for visit in corpus:
-               visit_encode = [vocab[concept] for concept in visit]
+               visit_encode = [self.concept2id[concept] for concept in visit]
                permutations = itertools.permutations(visit_encode, 2)
                for p in permutations:
                     self.comap[p[0], p[1]] += 1 # +1 additive shift to avoid diverging log

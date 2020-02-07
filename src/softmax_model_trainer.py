@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import os
 from utils.config import get_config_from_json
-from src.softmax_model import EnhancingNet
+from softmax_model import EnhancingNet
 
 def load_train_data(data_dir):
     return np.load(data_dir)
