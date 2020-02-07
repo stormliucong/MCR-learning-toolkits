@@ -4,6 +4,7 @@ from scipy import sparse
 import itertools
 import random
 import sys
+import os
 
 class GloVe(tf.keras.Model):
      def __init__(self, embedding_dim=128, max_vocab_size=100, min_occurrences=1, 
@@ -117,5 +118,5 @@ class GloVe(tf.keras.Model):
                     self.epoch_loss_avg.append(avg_loss)
                     
                if (epoch % saving_term) == 0:
-                    model.save_weights(os.path.join(save_dir, 
+                    self.save_weights(os.path.join(save_dir, 
                     "e{:03d}_loss{:.4f}.ckpt".format(epoch, avg_loss)))

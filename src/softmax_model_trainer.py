@@ -44,6 +44,7 @@ def model_train(model, json_dir):
         # random shuffle train data
         total_batch = int(np.ceil(len(train_data) / batch_size))
         loss_avg = tf.keras.metrics.Mean()
+        progbar = tf.keras.utils.Progbar(total_batch)
 
         for i in range(total_batch):
             x_batch = train_data[i * batch_size : (i+1) * batch_size]
@@ -53,6 +54,7 @@ def model_train(model, json_dir):
             model.optimizer.apply_gradients(zip(gradients, model.trainable_variables))
             
             loss_avg(loss) 
+            progbar.add(1)
             print("Step {}: Loss: {:.4f}".format(model.optimizer.iterations.numpy(), loss))
         
         if epoch % 1 == 0:
