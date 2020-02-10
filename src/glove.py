@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+from tqdm import tqdm
 from scipy import sparse
 import itertools
 import random
@@ -28,6 +29,7 @@ class GloVe(tf.keras.Model):
           tokenizer = tf.keras.preprocessing.text.Tokenizer()
           tokenizer.fit_on_texts(corpus)
           self.concept2id = tokenizer.word_index
+          self.concept2id.update({"0" : 0})
 
      def save_dict(self, save_dir):
           with open(save_dir + "/concept2id.pkl", "wb") as f:
@@ -38,8 +40,8 @@ class GloVe(tf.keras.Model):
           self.vocab_size = len(self.concept2id)
           self.comap = sparse.lil_matrix((self.vocab_size, self.vocab_size), dtype=np.float64)
 
-          for visit in corpus:
-               visit_encode = [self.concept2id[concept] for concept in visit]
+          for i in tqdm(range(len(corpus))):
+               visit_encode = [self.concept2id[concept] for concept in corpus[i]]
                permutations = itertools.permutations(visit_encode, 2)
                for p in permutations:
                     self.comap[p[0], p[1]] += 1 # +1 additive shift to avoid diverging log
