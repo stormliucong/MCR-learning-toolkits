@@ -6,6 +6,8 @@ import random
 import sys
 import os
 import pickle
+import matplotlib.pyplot as plt
+from sklearn.manifold import TSNE
 
 class GloVe(tf.keras.Model):
      def __init__(self, embedding_dim=128, max_vocab_size=100, 
@@ -48,14 +50,14 @@ class GloVe(tf.keras.Model):
           with tf.device("/cpu:0"):
                """must be implemented with cpu-only env since this is sparse updating"""
                self.target_embeddings = tf.Variable(
-                    tf.random.uniform([self.vocab_size, self.embedding_dim], 1.0, -1.0),
+                    tf.random.uniform([self.vocab_size, self.embedding_dim], 0.1, -0.1),
                     name="target_embeddings")
                self.context_embeddings = tf.Variable(
-                    tf.random.uniform([self.vocab_size, self.embedding_dim], 1.0, -1.0),
+                    tf.random.uniform([self.vocab_size, self.embedding_dim], 0.1, -0.1),
                     name="context_embeddings")
-               self.target_biases = tf.Variable(tf.random.uniform([self.vocab_size], 1.0, -1.0),
+               self.target_biases = tf.Variable(tf.random.uniform([self.vocab_size], 0.1, -0.1),
                name='target_biases')
-               self.context_biases = tf.Variable(tf.random.uniform([self.vocab_size], 1.0, -1.0),
+               self.context_biases = tf.Variable(tf.random.uniform([self.vocab_size], 0.1, -0.1),
                name="context_biases")
 
      def compute_cost(self, x):
@@ -103,6 +105,16 @@ class GloVe(tf.keras.Model):
           assert len(i_ids) == len(co_occurs), "The length of the data are not the same"
           return i_ids, j_ids, co_occurs
 
+     def get_embeddings(self):
+          self.embeddings = self.target_embeddings + self.context_embeddings
+
+     def generate_tsne(self, size=(10, 10)):
+          tsne = TSNE(perplexity=30, n_components=2, init='pca', n_iter=500)
+          low_dim_embs = tsne.fit_transform(self.embeddings[:, :])
+          labels = list(range(self.embeddings.shape[0]))
+        
+          return plot_with_labels(low_dim_embs, labels, size)
+
      def train_GloVe(self, num_epochs, save_dir, saving_term):
           i_ids, j_ids, co_occurs = self.prepare_batch()
           total_batch = int(np.ceil(len(i_ids) / self.batch_size))
@@ -130,3 +142,11 @@ class GloVe(tf.keras.Model):
                if (epoch % saving_term) == 0:
                     self.save_weights(os.path.join(save_dir, 
                     "e{:03d}_loss{:.4f}.ckpt".format(epoch, avg_loss)))
+
+def plot_with_labels(low_dim_embs, labels, size):
+     assert low_dim_embs.shape[0] >= len(labels), "More labels than embeddings"
+     figure = plt.figure(figsize=size)  # in inches
+     for i, label in enumerate(labels):
+          x, y = low_dim_embs[i, :]
+          plt.scatter(x, y)
+          plt.annotate(label, xy=(x, y), xytext=(5, 2), textcoords='offset points', ha='right', va='bottom')
