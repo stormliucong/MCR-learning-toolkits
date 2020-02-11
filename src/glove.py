@@ -1,12 +1,12 @@
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from scipy import sparse
 import itertools
 import random
 import sys
 import os
 import pickle
+from collections import defaultdict
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 
@@ -36,17 +36,20 @@ class GloVe(tf.keras.Model):
                pickle.dump(self.concept2id, f)
           print("concept2id successfully saved in the savedir")
      
-     def build_comap(self, corpus):
-          self.vocab_size = len(self.concept2id)
-          self.comap = sparse.lil_matrix((self.vocab_size, self.vocab_size), dtype=np.float64)
+     def fit_to_corpus(self, corpus):
+          self.comap = defaultdict(float)
+          self.comatrix = np.zeros((len(self.concept2id), len(self.concept2id)), dtype=np.float64)
+          concept2id = self.concept2id
 
           for i in tqdm(range(len(corpus))):
-               visit_encode = [self.concept2id[concept] for concept in corpus[i]]
-               permutations = itertools.permutations(visit_encode, 2)
-               for p in permutations:
-                    self.comap[p[0], p[1]] += 1 # +1 additive shift to avoid diverging log
-
-          self.comatrix = self.comap.todense() + 1
+               patient = corpus[i]
+               for p in patient:
+                    for k in patient:
+                         if p != k:
+                              self.comap[(p, k)] += 1
+        
+          for pair, count in self.comap.items():
+               self.comatrix[concept2id[pair[0]], concept2id[pair[1]]] = count
 
      def init_params(self):
           with tf.device("/cpu:0"):
@@ -96,8 +99,8 @@ class GloVe(tf.keras.Model):
           j_ids = []
           co_occurs = []
 
-          for i in range(self.comap.shape[0]):
-               for j in range(self.comap.shape[0]):
+          for i in range(self.comatrix.shape[0]):
+               for j in range(self.comatrix.shape[0]):
                     if i == j: continue
                     i_ids.append(i)
                     j_ids.append(j)
