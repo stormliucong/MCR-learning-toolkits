@@ -2,7 +2,7 @@ import tensorflow as tf
 import random
 import numpy as np
 import os
-from data_loader import load_dictionary, load_emb_matrix
+from src.data_loader import load_dictionary, load_emb_matrix
 
 class EnhancingNet(tf.keras.Model):
     def __init__(self, config):

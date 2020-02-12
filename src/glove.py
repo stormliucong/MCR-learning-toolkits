@@ -123,6 +123,7 @@ class GloVe(tf.keras.Model):
           i_ids, j_ids, co_occurs = self.prepare_batch()
           total_batch = int(np.ceil(len(i_ids) / self.batch_size))
           cost_avg = tf.keras.metrics.Mean()
+          self.save_dict(save_dir)
 
           for epoch in range(num_epochs):
 
