@@ -29,7 +29,7 @@ class GloVe(tf.keras.Model):
           tokenizer = tf.keras.preprocessing.text.Tokenizer()
           tokenizer.fit_on_texts(corpus)
           self.concept2id = tokenizer.word_index
-          self.concept2id.update({"0" : 0})
+          self.vocab_size = len(self.concept2id)
 
      def save_dict(self, save_dir):
           with open(save_dir + "/concept2id.pkl", "wb") as f:
@@ -38,7 +38,7 @@ class GloVe(tf.keras.Model):
      
      def fit_to_corpus(self, corpus):
           self.comap = defaultdict(float)
-          self.comatrix = np.zeros((len(self.concept2id), len(self.concept2id)), dtype=np.float64)
+          self.comatrix = np.zeros((len(self.concept2id)+1, len(self.concept2id)+1), dtype=np.float64)
           concept2id = self.concept2id
 
           for i in tqdm(range(len(corpus))):
@@ -74,12 +74,13 @@ class GloVe(tf.keras.Model):
 
           weight = tf.math.minimum(1.0, 
           tf.cast(tf.math.pow(
-               tf.math.truediv(x[2], self.max_vocab_size), 
+               tf.math.truediv(x[2], tf.cast(self.max_vocab_size, dtype=tf.float64)), 
                self.scaling_factor),
                dtype=tf.float32))
           emb_product = tf.math.reduce_sum(tf.math.multiply(target_emb, context_emb), axis=1)
-          log_cooccurrence = tf.math.log(tf.cast(x[2], dtype=tf.float32))
-
+          # add 1 when calculate log_cooccurrence not to get diverging log
+          log_cooccurrence = tf.math.log(tf.add(tf.cast(x[2], dtype=tf.float32), 1))
+          
           distance_cost = tf.math.square(
                tf.math.add_n([emb_product, target_bias, context_bias, 
                tf.math.negative(log_cooccurrence)]))
@@ -112,13 +113,11 @@ class GloVe(tf.keras.Model):
 
      def get_embeddings(self):
           self.embeddings = self.target_embeddings + self.context_embeddings
-
-     def generate_tsne(self, size=(10, 10)):
-          tsne = TSNE(perplexity=30, n_components=2, init='pca', n_iter=500)
-          low_dim_embs = tsne.fit_transform(self.embeddings[:, :])
-          labels = list(range(self.embeddings.shape[0]))
-        
-          return plot_with_labels(low_dim_embs, labels, size)
+     
+     def save_embeddings(self, save_dir, epoch, avg_loss):
+          self.get_embeddings()
+          np.save(os.path.join(save_dir, "glove_emb_e{:03d}_loss{:.4f}.npy".format(epoch, avg_loss)),
+          self.embeddings)
 
      def train_GloVe(self, num_epochs, save_dir, saving_term):
           i_ids, j_ids, co_occurs = self.prepare_batch()
@@ -145,13 +144,4 @@ class GloVe(tf.keras.Model):
                     self.epoch_loss_avg.append(avg_loss)
                     
                if (epoch % saving_term) == 0:
-                    self.save_weights(os.path.join(save_dir, 
-                    "e{:03d}_loss{:.4f}.ckpt".format(epoch, avg_loss)))
-
-def plot_with_labels(low_dim_embs, labels, size):
-     assert low_dim_embs.shape[0] >= len(labels), "More labels than embeddings"
-     figure = plt.figure(figsize=size)  # in inches
-     for i, label in enumerate(labels):
-          x, y = low_dim_embs[i, :]
-          plt.scatter(x, y)
-          plt.annotate(label, xy=(x, y), xytext=(5, 2), textcoords='offset points', ha='right', va='bottom')
+                    self.save_embeddings(save_dir, epoch, avg_loss)
