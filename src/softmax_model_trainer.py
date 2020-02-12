@@ -1,8 +1,9 @@
 import tensorflow as tf
 import numpy as np
 import os
-from utils.config import get_config_from_json
-from softmax_model import EnhancingNet
+import random
+from src.config import get_config_from_json
+from src.softmax_model import EnhancingNet
 
 def load_train_data(data_dir):
     return np.load(data_dir)
@@ -41,10 +42,10 @@ def model_train(model, json_dir):
     batch_size = config.batch_size
     for epoch in range(config.num_epochs):
         
-        # random shuffle train data
         total_batch = int(np.ceil(len(train_data) / batch_size))
         loss_avg = tf.keras.metrics.Mean()
         progbar = tf.keras.utils.Progbar(total_batch)
+        random.shuffle(train_data)
 
         for i in range(total_batch):
             x_batch = train_data[i * batch_size : (i+1) * batch_size]
@@ -61,6 +62,7 @@ def model_train(model, json_dir):
             avg_loss = loss_avg.result()
             model.epoch_loss_avg.append(avg_loss)
             model.save_weights(os.path.join(config.save_dir, "e{:03d}_loss{:.4f}.ckpt".format(epoch, avg_loss)))
+            model.save_embeddings(config.save_dir, epoch)
             print("Epoch {}: Loss: {:.4f}".format(epoch, loss_avg.result()))
 
 @tf.function
@@ -84,15 +86,10 @@ def compute_loss(model, x_batch, p_vec, i_vec, j_vec):
 
     batch_loss = tf.math.reduce_sum(-tf.math.log(noms / denoms), axis=0) / len(x_batch)
     # batch training : take average
-
     return batch_loss
 
 @tf.function
 def compute_gradients(model, x_batch, p_vec, i_vec, j_vec):
     with tf.GradientTape() as tape:
         loss = compute_loss(model, x_batch, p_vec, i_vec, j_vec)
-        
     return loss, tape.gradient(loss, model.trainable_variables)
-
-if __name__ == "__main__":
-    pass
