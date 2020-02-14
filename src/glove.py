@@ -7,8 +7,6 @@ import sys
 import os
 import pickle
 from collections import defaultdict
-import matplotlib.pyplot as plt
-from sklearn.manifold import TSNE
 
 class GloVe(tf.keras.Model):
      def __init__(self, embedding_dim=128, max_vocab_size=100, 

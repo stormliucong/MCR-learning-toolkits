@@ -3,6 +3,7 @@ import os
 import pickle
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 
 
 def load_pairs(file_name):
@@ -121,4 +122,15 @@ def build_weight_matrix(npy):
 
     return weight_matrix_expand
 
-
+def load_train_data(data_dir):
+    with open(data_dir, "r") as f:
+        body = f.read()
+    body = body.split("\n")
+    
+    mylist = []
+    for i in tqdm(range(len(body))):
+        str_list = body[i].split(",")
+        int_list = [int(c) for c in str_list]
+        mylist.append(int_list)
+    
+    return mylist
