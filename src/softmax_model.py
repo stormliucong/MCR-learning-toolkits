@@ -9,7 +9,7 @@ class EnhancingNet(tf.keras.Model):
     def __init__(self, config):
         super(EnhancingNet, self).__init__()
         self.config = config
-        self.InputNet = None
+        self.TargetNet = None
         self.ContextNet = None
         self.optimizer = tf.keras.optimizers.Adadelta() # set hparams
         self.epoch_loss_avg = []
@@ -18,7 +18,7 @@ class EnhancingNet(tf.keras.Model):
         self.concept2id = load_dictionary(config.dictdir) # set config.dir
         self.num_gpus = self.config.training_settings.num_gpus 
         self.max_len = config.max_len # set config.max_len
-        self.build_InputNet()
+        self.build_TargetNet()
         self.build_ContextNet()
 
     def encode(self, ids):
@@ -27,64 +27,74 @@ class EnhancingNet(tf.keras.Model):
         glove_embs = tf.nn.embedding_lookup(self.glove_emb, ids)
         return tf.concat([n2v_embs, glove_embs], axis=1)
 
-    def build_InputNet(self):
-        """build input network"""
-        inputs = tf.keras.layers.Input(shape=(256,))
-        h1 = tf.keras.layers.Dense(196, use_bias=False, name="mlp11")(inputs)
-        h1 = tf.keras.layers.BatchNormalization(name="batchnorm11")(h1)
-        h1 = tf.keras.layers.PReLU(name="prelu11")(h1)
-        h2 = tf.keras.layers.Dense(128, use_bias=False,name="mlp12")(h1)
-        h2 = tf.keras.layers.BatchNormalization(name="batchnorm12")(h2)
-        outputs = tf.keras.layers.PReLU(name="prelu12")(h2)
+    def build_TargetNet(self):
+        """build target network"""
+        inputs_target = tf.keras.layers.Input(shape=(256,))
+        h1_target = tf.keras.layers.Dense(196, use_bias=False, name="mlp11")(inputs_target)
+        h1_target = tf.keras.layers.BatchNormalization(name="batchnorm11")(h1_target)
+        h1_target = tf.keras.layers.PReLU(name="prelu11")(h1_target)
+        h2_target = tf.keras.layers.Dense(128, use_bias=False,name="mlp12")(h1_target)
+        h2_target = tf.keras.layers.BatchNormalization(name="batchnorm12")(h2_target)
+        outputs_target = tf.keras.layers.PReLU(name="prelu12")(h2_target)
 
-        self.InputNet = tf.keras.Model(inputs=inputs, outputs=outputs)
+        self.TargetNet = tf.keras.Model(inputs=inputs_target, outputs=outputs_target)
 
     def build_ContextNet(self):
         """build context network"""
+        inputs_context = tf.keras.layers.Input(shape=(256,))
+        h1_context = tf.keras.layers.Dense(196, use_bias=False, name="mlp21")(inputs_context)
+        h1_context = tf.keras.layers.BatchNormalization(name="batchnorm21")(h1_context)
+        h1_context = tf.keras.layers.PReLU(name="prelu21")(h1_context)
+        h2_context = tf.keras.layers.Dense(128, name="mlp22")(h1_context)
+        h2_context = tf.keras.layers.BatchNormalization(name="batchnorm22")(h2_context)
+        outputs_context = tf.keras.layers.PReLU(name="prelu22")(h2_context)
 
-        inputs = tf.keras.layers.Input(shape=(256,))
-        h1 = tf.keras.layers.Dense(196, use_bias=False, name="mlp21")(inputs)
-        h1 = tf.keras.layers.BatchNormalization(name="batchnorm21")(h1)
-        h1 = tf.keras.layers.PReLU(name="prelu21")(h1)
-        h2 = tf.keras.layers.Dense(128, name="mlp22")(h1)
-        h2 = tf.keras.layers.BatchNormalization(name="batchnorm22")(h2)
-        outputs = tf.keras.layers.PReLU(name="prelu22")(h2)
-
-        self.ContextNet = tf.keras.Model(inputs=inputs, outputs=outputs)
+        self.ContextNet = tf.keras.Model(inputs=inputs_context, outputs=outputs_context)
     
     def get_enhanced_rep(self):
         """Intended to use after loading trained weights"""
-        self.enhanced_rep = self.InputNet(self.encode(list(range(len(self.concept2id)))))
+        self.enhanced_rep = self.TargetNet(self.encode(list(range(len(self.concept2id)))))
 
     def get_context_rep(self):
         """Intended to use after loading trained weights"""
         self.context_rep = self.ContextNet(self.encode(list(range(len(self.concept2id)))))
 
-    def compute_v(self, x_batch):
+    def compute_wi(self, x_batch):
         flatten_batch = tf.reshape(x_batch, [-1])
-        self.v = tf.reshape(self.InputNet(self.encode(flatten_batch)), 
+        self.wi = tf.reshape(self.InputNet(self.encode(flatten_batch)), 
         [len(x_batch), self.max_len, 128]) # batch_size * max_len * emb_dim
-        # add self.max_len
+        
+    def compute_wj(self, x_batch):
+        flatten_batch = tf.reshape(x_batch, [-1])
+        self.wj = tf.reshape(self.ContextNet(self.encode(flatten_batch)), 
+        [len(x_batch), self.max_len, 128]) # batch_size * max_len * emb_dim
 
-    def compute_loss(self, x_batch, p_vec, i_vec, j_vec):
+    def compute_loss(self, x_batch):
+        
         self.get_context_rep()
-        self.compute_v(x_batch)
-        matmul_vX = tf.linalg.normalize(tf.matmul(self.v, tf.transpose(self.context_rep)), axis=-1, ord=1)[0] # n * l * k matrix
-        denom_mat = tf.math.reduce_sum(matmul_vX, axis=-1) # n * l matrix
+        self.compute_wi(x_batch)
+        self.compute_wj(x_batch)
+        
+        wi_wj = tf.matmul( self.wi, tf.transpose(self.wj, perm=[0,2,1])) # dim : n * l * l
+        wi_wj_rsum = tf.reduce_sum(wi_wj, axis=2) # dim : n * l
+        boolean_mask = wi_wj_rsum != 0
+        wi_wj_ndiag = tf.math.subtract(wi_wj_rsum, tf.linalg.diag_part(wi_wj)) # emb product sum w/o target concept itself
+        
+        wi_wk = tf.matmul(self.wi, tf.transpose(self.context_rep)) # dim : n * l * k
+        wi_wk_max = tf.reduce_max(wi_wk, axis=2) # get the max value in each emb product for target concept
+        wi_wk_rsum = tf.reduce_sum(wi_wk, axis=2) # dim : n * l 
+        
+        noms = tf.math.exp( tf.math.subtract( tf.boolean_mask( wi_wj_ndiag, boolean_mask),
+                                             tf.boolean_mask( wi_wk_max, boolean_mask)))
+        denoms = tf.math.exp( tf.math.subtract( tf.boolean_mask( wi_wk_rsum, boolean_mask),
+                                               tf.boolean_mask( wi_wk_max, boolean_mask)))
+        batch_loss = tf.reduce_sum(-tf.math.log(noms / denoms)) / len(x_batch) 
 
-        nom_ids = tf.transpose([p_vec, i_vec, j_vec]) # length = n * l(l-1)
-        denom_ids = tf.transpose([p_vec, i_vec]) # length = n * l(l-1)
-
-        noms = tf.exp(tf.gather_nd(matmul_vX, nom_ids))
-        denoms = tf.exp(tf.gather_nd(denom_mat, denom_ids))
-
-        batch_loss = tf.math.reduce_sum(-tf.math.log(noms / denoms), axis=0) / len(x_batch)
-        # batch training : take average
         return batch_loss
 
-    def compute_gradients(self, x_batch, p_vec, i_vec, j_vec):
+    def compute_gradients(self, x_batch):
         with tf.GradientTape() as tape:
-            loss = self.compute_loss(x_batch, p_vec, i_vec, j_vec)
+            loss = self.compute_loss(x_batch)
         return loss, tape.gradient(loss, self.trainable_variables)
     
     def model_train(self, batch_size, num_epochs):
@@ -97,9 +107,7 @@ class EnhancingNet(tf.keras.Model):
 
             for i in range(total_batch):
                 x_batch = shuffled_data[i * batch_size : (i+1) * batch_size]
-                p_vec, i_vec, j_vec = padMatrix(x_batch)
-            
-                loss, gradients = self.compute_gradients(x_batch, p_vec, i_vec, j_vec)
+                loss, gradients = self.compute_gradients(x_batch)
                 self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
             
                 loss_avg(loss) 
@@ -110,7 +118,6 @@ class EnhancingNet(tf.keras.Model):
                 avg_loss = loss_avg.result()
                 self.epoch_loss_avg.append(avg_loss)
                 print("Epoch {}: Loss: {:.4f}".format(epoch, loss_avg.result()))
-
 
     def save_embeddings(self, save_dir, epoch):
         self.get_enhanced_rep()

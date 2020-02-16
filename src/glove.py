@@ -81,9 +81,9 @@ class GloVe(tf.keras.Model):
           
           distance_cost = tf.math.square(
                tf.math.add_n([emb_product, target_bias, context_bias, 
-               tf.math.negative(log_cooccurrence)]))
+               tf.math.negative(log_cooccurrence)])) 
                
-          batch_cost = tf.math.reduce_sum(tf.multiply(weight, distance_cost))
+          batch_cost = tf.math.reduce_sum(tf.multiply(weight, distance_cost)) 
           
           return batch_cost
 
