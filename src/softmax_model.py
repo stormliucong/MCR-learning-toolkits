@@ -132,29 +132,3 @@ def shuffle_data(data):
     for ind in shuffle_index:
         train_data_shuffled.append(data[ind])
     return train_data_shuffled
-
-def get_permutations(idx, seq, i_vec, j_vec, p_vec):
-    for first in seq:
-        for second in seq:
-            if first == 0:
-                continue
-            if second == 0:
-                continue
-            if first == second: 
-                continue
-            i_vec.extend(np.where(seq == first)[0])
-            j_vec.append(second)
-            p_vec.append(idx)
-
-def padMatrix(x_batch):
-    """
-    """
-    p_vec = []
-    i_vec = []
-    j_vec = []
-    
-    for idx, seq in enumerate(x_batch):
-        get_permutations(idx, seq, i_vec, j_vec, p_vec)
-    p_vec = tf.reshape(p_vec, [-1])
-
-    return p_vec, i_vec, j_vec
