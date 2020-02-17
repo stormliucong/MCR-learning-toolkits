@@ -61,7 +61,7 @@ class EnhancingNet(tf.keras.Model):
 
     def compute_wi(self, x_batch):
         flatten_batch = tf.reshape(x_batch, [-1])
-        self.wi = tf.reshape(self.InputNet(self.encode(flatten_batch)), 
+        self.wi = tf.reshape(self.TargetNet(self.encode(flatten_batch)), 
         [len(x_batch), self.max_len, 128]) # batch_size * max_len * emb_dim
         
     def compute_wj(self, x_batch):
