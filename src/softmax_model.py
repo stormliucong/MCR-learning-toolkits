@@ -76,18 +76,11 @@ class EnhancingNet(tf.keras.Model):
         self.compute_wj(x_batch)
         
         wi_wj = tf.matmul( self.wi, tf.transpose(self.wj, perm=[0,2,1])) # dim : n * l * l
-        wi_wj_rsum = tf.reduce_sum(wi_wj, axis=2) # dim : n * l
-        boolean_mask = wi_wj_rsum != 0
-        wi_wj_ndiag = tf.math.subtract(wi_wj_rsum, tf.linalg.diag_part(wi_wj)) # emb product sum w/o target concept itself
-        
+        wi_wj_ndiag = tf.math.subtract(wi_wj, tf.linalg.diag(tf.linalg.diag_part(wi_wj))) # emb product sum w/o target concept itself
         wi_wk = tf.matmul(self.wi, tf.transpose(self.context_rep)) # dim : n * l * k
-        wi_wk_max = tf.reduce_max(wi_wk, axis=2) # get the max value in each emb product for target concept
-        wi_wk_rsum = tf.reduce_sum(wi_wk, axis=2) # dim : n * l 
         
-        noms = tf.math.exp( tf.math.subtract( tf.boolean_mask( wi_wj_ndiag, boolean_mask),
-                                             tf.boolean_mask( wi_wk_max, boolean_mask)))
-        denoms = tf.math.exp( tf.math.subtract( tf.boolean_mask( wi_wk_rsum, boolean_mask),
-                                               tf.boolean_mask( wi_wk_max, boolean_mask)))
+        noms = tf.reduce_sum(tf.math.exp(wi_wj_ndiag), axis=2)
+        denoms = tf.reduce_sum(tf.math.exp(wi_wk), axis=2)
         batch_loss = tf.reduce_sum(-tf.math.log(noms / denoms)) / len(x_batch) 
 
         return batch_loss
