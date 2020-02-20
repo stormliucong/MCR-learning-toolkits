@@ -1,8 +1,11 @@
 import numpy as numpy
 from scipy.spatial.distance import cosine
 
-def consine_sim(a,b):
-    return (1 - cosine(a,b))
+def cosine_sim(vec_a,vec_b):
+    """
+    -- vec_a, vec_b : vectors to calculate cosine similarity between them
+    """
+    return (1 - cosine(vec_a,vec_b))
 
 def evaluate_structural_info():
     pass
