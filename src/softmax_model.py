@@ -79,9 +79,11 @@ class EnhancingNet(tf.keras.Model):
         wi_wj_ndiag = tf.math.subtract(wi_wj, tf.linalg.diag(tf.linalg.diag_part(wi_wj))) # emb product sum w/o target concept itself
         wi_wk = tf.matmul(self.wi, tf.transpose(self.context_rep)) # dim : n * l * k
         
+        boolean_masking = tf.convert_to_tensor(x_batch) != 0
         noms = tf.reduce_sum(tf.math.exp(wi_wj_ndiag), axis=2)
         denoms = tf.reduce_sum(tf.math.exp(wi_wk), axis=2)
-        batch_loss = tf.reduce_sum(-tf.math.log(noms / denoms)) / len(x_batch) 
+        softmax_vals = tf.boolean_mask(noms, boolean_masking) / tf.boolean_mask(denoms, boolean_masking)
+        batch_loss = tf.reduce_sum(-tf.math.log(softmax_vals)) / len(x_batch) 
 
         return batch_loss
 
