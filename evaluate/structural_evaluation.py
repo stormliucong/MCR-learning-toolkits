@@ -6,12 +6,6 @@ from tqdm import tqdm
 from scipy.spatial.distance import cosine
 from collections import OrderedDict
 
-def cosine_sim(vec_a,vec_b):
-    """
-    -- vec_a, vec_b : vectors to calculate cosine similarity between them
-    """
-    return (1 - cosine(vec_a,vec_b))
-
 class StructuralEval():
     """Class for structural information evaluation"""
     def __init__(self, config):
@@ -118,3 +112,9 @@ def computeSims(pairs, vector_matrix, concept2id):
 
 def load_emb_matrix(npydir):
     return np.load(npydir)
+
+def cosine_sim(vec_a,vec_b):
+    """
+    -- vec_a, vec_b : vectors to calculate cosine similarity between them
+    """
+    return (1 - cosine(vec_a,vec_b))
