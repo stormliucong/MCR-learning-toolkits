@@ -4,7 +4,9 @@ from scipy.spatial.distance import cosine
 import pickle
 import itertools
 import json
+from tqdm import tqdm
 from dotmap import DotMap
+import matplotlib.pyplot as plt
 
 class PhenotypingEval():
     """Class for phenotyping task evaluation"""
@@ -51,11 +53,38 @@ class PhenotypingEval():
     def getNegativePairs(self):
         pass
 
-    def computeSims(self):
-        pass
+    def updateSims(self, dict_to_be_updated):
+        phenotypes = list(self.condition_pairs.keys())
 
+        condition_sims = dict()
+        drug_sims = dict()
+        cross_sims = dict()
+        total_sims = dict()
+        for phe in phenotypes:
+            condition_sims.update({phe : computeSims(self.condition_pairs[phe], self.enhanced_emb, self.concept2id)})
+            drug_sims.update({phe : computeSims(self.drug_pairs[phe], self.enhanced_emb, self.concept2id)})
+            cross_sims.update({phe : computeSims(self.cross_pairs[phe], self.enhanced_emb, self.concept2id)})
+
+        total_sims.update(condition_sims)
+        total_sims.update(drug_sims)
+        total_sims.update(cross_sims)
+
+        dict_to_be_updated.update({"condition_sims" : condition_sims, "drug_sims" : drug_sims,
+        "cross_sims" : cross_sims,"total_sims" : total_sims})
+
+    def updateSimsforEmb(self):
+        self.updateSims(self.enhanced_sims)
+        self.updateSims(self.n2v_sims)
+        self.updateSims(self.glove_sims)
 
     def plotSimHist(self):
+        """plot results to multiple histograms"""
+        for i in range(1, 17):
+            plt.subplot(4, 4, i)
+        pass
+
+    def visualizeTSNE(self):
+        """visualize results using t-SNE"""
         pass
         
 # package-wide functions
@@ -63,15 +92,14 @@ class PhenotypingEval():
 def computeSims(pairs, vector_matrix, concept2id):
     sim_list = []
     print("start computing cosine similarities in the pair list")
-    if len(pairs) < 1:
-        continue
-    for i in tqdm(range(len(pairs))):
-        id_pairs = (concept2id[pairs[i][0]], concept2id[pairs[i][1]])
-        try:
-            sim = 1 - (cosine(vector_matrix[id_pairs[0]], vector_matrix[id_pairs[1]]))
-            sim_list.append(sim)
-        except:
-            pass    
+    if len(pairs) > 0:
+        for i in tqdm(range(len(pairs))):
+            id_pairs = (concept2id[pairs[i][0]], concept2id[pairs[i][1]])
+            try:
+                sim = 1 - (cosine(vector_matrix[id_pairs[0]], vector_matrix[id_pairs[1]]))
+                sim_list.append(sim)
+            except:
+                pass    
     return sim_list
 
 def load_dictionary(pklfile):
