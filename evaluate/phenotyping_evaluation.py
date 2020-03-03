@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from collections import OrderedDict
 from scipy.spatial.distance import cosine
 import pickle
@@ -22,10 +23,10 @@ class PhenotypingEval():
         self.condition_phe = OrderedDict()  
         self.drug_phe = OrderedDict() 
         self.total_phe = OrderedDict() 
-        self.enhanced_emb = load_dictionary(self.config.enhanced_emb_dir)
-        self.n2v_emb = load_dictionary(self.config.n2v_emb_dir)
-        self.glove_emb = load_dictionary(self.config.glove_emb_dir)
-        self.concept2id = load_dictionary(self.config.concept2id_dir)
+        self.enhanced_emb = load_emb_matrix(self.config.results.enhanced_emb)
+        self.n2v_emb = load_emb_matrix(self.config.results.n2v_emb)
+        self.glove_emb = load_emb_matrix(self.config.results.glove_emb)
+        self.concept2id = load_dictionary(self.config.data.concept2id)
 
     def setPheDict(self):
         phe_data = pd.DataFrame.from_csv(self.config.phe_data_dir, sep="\t")
@@ -50,7 +51,9 @@ class PhenotypingEval():
         self.drug_pairs = getPairsfromDict(self.drug_phe, self.drug_phe)
         self.cross_pairs = getPairsfromDict(self.condition_phe, self.drug_phe)
 
-    def getNegativePairs(self):
+    def computeRandomSims(self):
+        # use random pairs instead of negative pairs
+        # for each bin in histogram
         pass
 
     def updateSims(self, dict_to_be_updated):
@@ -107,6 +110,9 @@ def load_dictionary(pklfile):
     dict_load = pickle.load(f)
     return dict_load
 
+def load_emb_matrix(npydir):
+    return np.load(npydir)
+
 def getIntersections(concept_list, concept_range_set):
     concept_set = set(concept_list)
     intersections = list(concept_set.intersection(concept_range_set))
@@ -121,7 +127,6 @@ def setConfig(json_file):
         config_dict = json.load(config_file)
     # convert the dictionary to a namespace using bunch lib
     config = DotMap(config_dict)
-
     return config      
 
 def getPairsfromDict(phedict1, phedict2):
