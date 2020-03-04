@@ -80,15 +80,18 @@ class PhenotypingEval():
         self.updateSims(self.n2v_sims)
         self.updateSims(self.glove_sims)
 
+    def genRandomSamples(self, num_sample=100000, num_sampling=100):
+        pass
+
     def plotSimHist(self, emb_type, fig_size=(16,3)):
         """plot results to multiple histograms"""
         # add random pairs sim 
         if emb_type == "enhanced":
-            data_dict = self.enhanced_emb
+            data_dict = self.enhanced_sims
         elif emb_type == "n2v":
-            data_dict = self.n2v_emb
+            data_dict = self.n2v_sims
         elif emb_type == "glove":
-            data_dict = self.glove_emb
+            data_dict = self.glove_sims
         else:
             print("No data")
         labels = list(data_dict["condition_sims"].keys())
@@ -97,18 +100,22 @@ class PhenotypingEval():
         ax = f.add_subplot(141)
         plt.title("Median sim of condition pairs")
         ax.bar(labels, list(data_dict["condition_sims"].values()))
+        plt.xticks(rotation=90, fontsize=8)
         ax.axhline(0.2, linewidth=0.5, color = "r", ls="--")
         ax2 = f.add_subplot(142)
         plt.title("Median sim of drug pairs")
         ax2.bar(labels, list(data_dict["drug_sims"].values()))
+        plt.xticks(rotation=90, fontsize=8)
         ax2.axhline(0.2, linewidth=0.5, color = "r", ls="--")
         ax3 = f.add_subplot(143)
         plt.title("Median sim of cross pairs")
         ax3.bar(labels, list(data_dict["cross_sims"].values()))
+        plt.xticks(rotation=90, fontsize=8)
         ax3.axhline(0.2, linewidth=0.5, color = "r", ls="--")
         ax4 = f.add_subplot(144)
         plt.title("Median sim of total pairs")
         ax4.bar(labels, list(data_dict["total_sims"].values()))
+        plt.xticks(rotation=90, fontsize=8)
         ax4.axhline(0.2, linewidth=0.5, color = "r", ls="--")
         plt.show()
 
