@@ -59,7 +59,7 @@ class PhenotypingEval():
             total_pairs = self.condition_pairs[phe] + self.drug_pairs[phe] + self.cross_pairs[phe]
             self.total_pairs.update({phe : total_pairs})
 
-    def updateSims(self, dict_to_be_updated):
+    def updateSims(self, updating_emb, dict_to_be_updated):
         phenotypes = list(self.condition_pairs.keys())
 
         condition_sims = OrderedDict()  
@@ -67,9 +67,9 @@ class PhenotypingEval():
         cross_sims = OrderedDict()
         total_sims = OrderedDict()
         for phe in phenotypes:
-            condition_sims.update({phe : computeSims(self.condition_pairs[phe], self.enhanced_emb, self.concept2id)})
-            drug_sims.update({phe : computeSims(self.drug_pairs[phe], self.enhanced_emb, self.concept2id)})
-            cross_sims.update({phe : computeSims(self.cross_pairs[phe], self.enhanced_emb, self.concept2id)})
+            condition_sims.update({phe : computeSims(self.condition_pairs[phe], updating_emb, self.concept2id)})
+            drug_sims.update({phe : computeSims(self.drug_pairs[phe], updating_emb, self.concept2id)})
+            cross_sims.update({phe : computeSims(self.cross_pairs[phe], updating_emb, self.concept2id)})
 
         total_sims.update(condition_sims)
         total_sims.update(drug_sims)
@@ -79,9 +79,9 @@ class PhenotypingEval():
         "cross_sims" : cross_sims,"total_sims" : total_sims})
 
     def updateSimsforEmb(self):
-        self.updateSims(self.enhanced_sims)
-        self.updateSims(self.n2v_sims)
-        self.updateSims(self.glove_sims)
+        self.updateSims(self.enhanced_emb, self.enhanced_sims)
+        self.updateSims(self.n2v_emb, self.n2v_sims)
+        self.updateSims(self.glove_emb, self.glove_sims)
 
     def genRandomBaselines(self, emb_matrix, updating_dict, num_sampling=100):
         num_condition_samples = int(np.ceil(computeMedianPairs(self.condition_pairs)))
@@ -149,9 +149,9 @@ class PhenotypingEval():
         plt.title("Median sim of total pairs")
         ax4.bar(labels, list(data_dict["total_sims"].values()))
         plt.xticks(rotation=90, fontsize=8)
-        ax.axhline(np.median(baselines["total_baselines"]), linewidth=0.5, color = "r", ls="-") # median of random baseline
-        ax.axhline(np.percentile(baselines["total_baselines"], 5), linewidth=0.5, color = "r", ls="--") # 0.95 of random baseline
-        ax.axhline(np.percentile(baselines["total_baselines"], 95), linewidth=0.5, color = "r", ls="--") # 0.05 of random baseline
+        ax4.axhline(np.median(baselines["total_baselines"]), linewidth=0.5, color = "r", ls="-") # median of random baseline
+        ax4.axhline(np.percentile(baselines["total_baselines"], 5), linewidth=0.5, color = "r", ls="--") # 0.95 of random baseline
+        ax4.axhline(np.percentile(baselines["total_baselines"], 95), linewidth=0.5, color = "r", ls="--") # 0.05 of random baseline
         plt.show()
 
     def visualizeTSNE(self):
