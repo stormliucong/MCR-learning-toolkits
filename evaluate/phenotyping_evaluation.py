@@ -11,21 +11,24 @@ import matplotlib.pyplot as plt
 
 class PhenotypingEval():
     """Class for phenotyping task evaluation"""
-    def __init__(self, json_params):
-        self.config = setConfig(json_params)
-        self.condition_pairs = None
-        self.drug_pairs = None
-        self.cross_pairs = None
-        self.total_pairs = None
+    def __init__(self, json_dir):
+        self.config = setConfig(json_dir)
+        self.condition_phe = OrderedDict()  
+        self.drug_phe = OrderedDict() 
+        self.total_phe = OrderedDict()
+        self.condition_pairs = OrderedDict()
+        self.drug_pairs = OrderedDict()
+        self.cross_pairs = OrderedDict()
+        self.total_pairs = OrderedDict()
         self.enhanced_sims = dict()
         self.n2v_sims = dict()
         self.glove_sims = dict()
-        self.condition_phe = OrderedDict()  
-        self.drug_phe = OrderedDict() 
-        self.total_phe = OrderedDict() 
+        self.enhanced_baselines = dict()
+        self.n2v_baselines = dict()
+        self.glove_baselines = dict()
         self.enhanced_emb = load_emb_matrix(self.config.results.enhanced_emb)
-        self.n2v_emb = load_emb_matrix(self.config.results.n2v_emb)
-        self.glove_emb = load_emb_matrix(self.config.results.glove_emb)
+        self.n2v_emb = load_emb_matrix(self.config.data.n2v_emb)
+        self.glove_emb = load_emb_matrix(self.config.data.glove_emb)
         self.concept2id = load_dictionary(self.config.data.concept2id)
 
     def setPheDict(self):
@@ -50,11 +53,11 @@ class PhenotypingEval():
         self.condition_pairs = getPairsfromDict(self.condition_phe, self.condition_phe)
         self.drug_pairs = getPairsfromDict(self.drug_phe, self.drug_phe)
         self.cross_pairs = getPairsfromDict(self.condition_phe, self.drug_phe)
-
-    def computeRandomSims(self):
-        # use random pairs instead of negative pairs
-        # for each bin in histogram
-        pass
+        
+        phenotypes = list(self.condition_pairs.keys())
+        for phe in phenotypes:
+            total_pairs = self.condition_pairs[phe] + self.drug_pairs[phe] + self.cross_pairs[phe]
+            self.total_pairs.update({phe : total_pairs})
 
     def updateSims(self, dict_to_be_updated):
         phenotypes = list(self.condition_pairs.keys())
@@ -80,43 +83,75 @@ class PhenotypingEval():
         self.updateSims(self.n2v_sims)
         self.updateSims(self.glove_sims)
 
-    def genRandomSamples(self, num_sample=100000, num_sampling=100):
-        pass
+    def genRandomBaselines(self, emb_matrix, updating_dict, num_sampling=100):
+        num_condition_samples = int(np.ceil(computeMedianPairs(self.condition_pairs)))
+        num_drug_samples = int(np.ceil(computeMedianPairs(self.drug_pairs)))
+        num_cross_samples = int(np.ceil(computeMedianPairs(self.cross_pairs)))
+        num_total_samples = int(np.ceil(computeMedianPairs(self.total_pairs)))
+    
+        condition_sample_medians = []
+        drug_sample_medians = []
+        cross_sample_medians = []
+        total_sample_medians = []
+    
+        for i in tqdm(range(num_sampling)):
+            condition_sample_medians.append(getRandomMedian(num_condition_samples, emb_matrix))
+            drug_sample_medians.append(getRandomMedian(num_drug_samples, emb_matrix))
+            cross_sample_medians.append(getRandomMedian(num_cross_samples, emb_matrix))
+            total_sample_medians.append(getRandomMedian(num_total_samples, emb_matrix))
+            print(i+1, "th median baseline computed")
+        
+        updating_dict.update({"condition_baselines" : condition_sample_medians})
+        updating_dict.update({"drug_baselines" : drug_sample_medians})
+        updating_dict.update({"cross_baselines" : cross_sample_medians})
+        updating_dict.update({"total_baselines" : total_sample_medians})
 
     def plotSimHist(self, emb_type, fig_size=(16,3)):
         """plot results to multiple histograms"""
         # add random pairs sim 
         if emb_type == "enhanced":
             data_dict = self.enhanced_sims
+            baselines = self.enhanced_baselines
         elif emb_type == "n2v":
             data_dict = self.n2v_sims
+            baselines = self.n2v_baselines
         elif emb_type == "glove":
             data_dict = self.glove_sims
+            baselines = self.glove_baselines
         else:
             print("No data")
+
         labels = list(data_dict["condition_sims"].keys())
-        
+    
         f = plt.figure(figsize=fig_size)
         ax = f.add_subplot(141)
         plt.title("Median sim of condition pairs")
         ax.bar(labels, list(data_dict["condition_sims"].values()))
         plt.xticks(rotation=90, fontsize=8)
-        ax.axhline(0.2, linewidth=0.5, color = "r", ls="--")
+        ax.axhline(np.median(baselines["condition_baselines"]), linewidth=0.5, color = "r", ls="-") # median of random baseline
+        ax.axhline(np.percentile(baselines["condition_baselines"], 5), linewidth=0.5, color = "r", ls="--") # 0.95 of random baseline
+        ax.axhline(np.percentile(baselines["condition_baselines"], 95), linewidth=0.5, color = "r", ls="--") # 0.05 of random baseline
         ax2 = f.add_subplot(142)
         plt.title("Median sim of drug pairs")
         ax2.bar(labels, list(data_dict["drug_sims"].values()))
         plt.xticks(rotation=90, fontsize=8)
-        ax2.axhline(0.2, linewidth=0.5, color = "r", ls="--")
+        ax2.axhline(np.median(baselines["drug_baselines"]), linewidth=0.5, color = "r", ls="-") # median of random baseline
+        ax2.axhline(np.percentile(baselines["drug_baselines"], 5), linewidth=0.5, color = "r", ls="--") # 0.95 of random baseline
+        ax2.axhline(np.percentile(baselines["drug_baselines"], 95), linewidth=0.5, color = "r", ls="--") # 0.05 of random baseline
         ax3 = f.add_subplot(143)
         plt.title("Median sim of cross pairs")
         ax3.bar(labels, list(data_dict["cross_sims"].values()))
         plt.xticks(rotation=90, fontsize=8)
-        ax3.axhline(0.2, linewidth=0.5, color = "r", ls="--")
+        ax3.axhline(np.median(baselines["cross_baselines"]), linewidth=0.5, color = "r", ls="-") # median of random baseline
+        ax3.axhline(np.percentile(baselines["cross_baselines"], 5), linewidth=0.5, color = "r", ls="--") # 0.95 of random baseline
+        ax3.axhline(np.percentile(baselines["cross_baselines"], 95), linewidth=0.5, color = "r", ls="--") # 0.05 of random baseline
         ax4 = f.add_subplot(144)
         plt.title("Median sim of total pairs")
         ax4.bar(labels, list(data_dict["total_sims"].values()))
         plt.xticks(rotation=90, fontsize=8)
-        ax4.axhline(0.2, linewidth=0.5, color = "r", ls="--")
+        ax.axhline(np.median(baselines["total_baselines"]), linewidth=0.5, color = "r", ls="-") # median of random baseline
+        ax.axhline(np.percentile(baselines["total_baselines"], 5), linewidth=0.5, color = "r", ls="--") # 0.95 of random baseline
+        ax.axhline(np.percentile(baselines["total_baselines"], 95), linewidth=0.5, color = "r", ls="--") # 0.05 of random baseline
         plt.show()
 
     def visualizeTSNE(self):
@@ -186,3 +221,32 @@ def getPairsfromDict(phedict1, phedict2):
             pairs_dict[phe] = combinations
             
     return pairs_dict
+
+def getRandomMedian(num_samples, emb_matrix):
+    total_len = emb_matrix.shape[0]
+    sim_samples = []
+    
+    for i in range(num_samples):
+        random_pair = np.random.choice(total_len, 2, replace=False)
+        sim = 1 - cosine(emb_matrix[random_pair[0]], emb_matrix[random_pair[1]])
+        sim_samples.append(sim)
+        
+    return np.nanmedian(sim_samples)
+
+def computeMedianPairs(pairs_dict):
+    phe_list = list(pairs_dict.keys())
+    
+    nums = []
+    for phe in phe_list:
+        nums.append(len(pairs_dict[phe]))
+    
+    return np.median(nums)
+
+def computeMeanPairs(pairs_dict):
+    phe_list = list(pairs_dict.keys())
+    
+    nums = 0
+    for phe in phe_list:
+        nums += len(pairs_dict[phe])
+    
+    return nums / len(phe_list)
