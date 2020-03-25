@@ -38,8 +38,8 @@ class MCREvaluation():
         self.avgsim_df = OrderedDict()
         self.avgsim_total = None
 
-
     def setPheDict(self):
+        """set dictionaries that have condition concepts and drug concepts"""
         phe_data = pd.DataFrame.from_csv(self.config.data.phe_data, sep="\t")
         unique_phenotype = list(set(phe_data["phenotype"]))
         condition_data = phe_data.loc[phe_data["standard_domain"] == ("Condition")]
@@ -75,157 +75,365 @@ class MCREvaluation():
         glove_5yrs_all_concepts = set(self.glove_concept2id["concept2id_5yrs"].keys())
         glove_visit_all_concepts = set(self.glove_concept2id["concept2id_visit"].keys())
         unique_phe = list(self.condition_phe.keys())
-        glove_5yrs_phedict = {}
-        glove_visit_phedict = {}
+        glove_5yrs_phedict_c = OrderedDict()
+        glove_visit_phedict_c = OrderedDict()
+        glove_5yrs_phedict_d = OrderedDict()
+        glove_visit_phedict_d = OrderedDict()
+        glove_5yrs_phedict_cd = OrderedDict()
+        glove_visit_phedict_cd = OrderedDict()
         
         print("updating concepts for each phenotyping algorithm")
         for phe in unique_phe:
-            yrs_intersection = glove_5yrs_all_concepts.intersection(set(self.condition_phe[phe]))
-            visit_intersection = glove_visit_all_concepts.intersection(set(self.condition_phe[phe]))
+            yrs_intersection_c = glove_5yrs_all_concepts.intersection(set(self.condition_phe[phe]))
+            visit_intersection_c = glove_visit_all_concepts.intersection(set(self.condition_phe[phe]))
+            yrs_intersection_d = glove_5yrs_all_concepts.intersection(set(self.drug_phe[phe]))
+            visit_intersection_d = glove_visit_all_concepts.intersection(set(self.drug_phe[phe]))
             
-            yrs_combinations = list(itertools.combinations(list(yrs_intersection), 2))
-            visit_combinations = list(itertools.combinations(list(visit_intersection), 2))
+            yrs_combinations_c = list(itertools.combinations(list(yrs_intersection_c), 2))
+            visit_combinations_c = list(itertools.combinations(list(visit_intersection_c), 2))
+            yrs_combinations_d = list(itertools.combinations(list(yrs_intersection_d), 2))
+            visit_combinations_d = list(itertools.combinations(list(visit_intersection_d), 2))
+            yrs_combinations_cd = list(itertools.product(list(yrs_intersection_c), list(yrs_intersection_d)))
+            visit_combinations_cd = list(itertools.product(list(visit_combinations_c), list(visit_combinations_d)))
             
-            glove_5yrs_phedict.update({phe : yrs_combinations})
-            glove_visit_phedict.update({phe : visit_combinations})
+            glove_5yrs_phedict_c.update({phe : yrs_combinations_c})
+            glove_visit_phedict_c.update({phe : visit_combinations_c})
+            glove_5yrs_phedict_d.update({phe : yrs_combinations_d})
+            glove_visit_phedict_d.update({phe : visit_combinations_d})
+            glove_5yrs_phedict_cd.update({phe : yrs_combinations_cd})
+            glove_visit_phedict_cd.update({phe : visit_combinations_cd})
             
-        self.glove_phedict.update({"glove_5yrs" : glove_5yrs_phedict})
-        self.glove_phedict.update({"glove_visit" : glove_visit_phedict})
+        self.glove_phedict.update({"glove_5yrs_c" : glove_5yrs_phedict_c})
+        self.glove_phedict.update({"glove_visit_c" : glove_visit_phedict_c})
+        self.glove_phedict.update({"glove_5yrs_d" : glove_5yrs_phedict_d})
+        self.glove_phedict.update({"glove_visit_d" : glove_visit_phedict_d})
+        self.glove_phedict.update({"glove_5yrs_cd" : glove_5yrs_phedict_cd})
+        self.glove_phedict.update({"glove_visit_cd" : glove_visit_phedict_cd})
         
     def setPhePairs_n2v(self):
         self.load_n2vemb()
         n2v_h_all_concepts = set(self.n2v_hierarchical.vocab)
         n2v_f_all_concepts = set(self.n2v_full.vocab)
         unique_phe = list(self.condition_phe.keys())
-        n2v_h_phedict = {}
-        n2v_f_phedict = {}
+        n2v_h_phedict_c = OrderedDict()
+        n2v_f_phedict_c = OrderedDict()
+        n2v_h_phedict_d = OrderedDict()
+        n2v_f_phedict_d = OrderedDict()
+        n2v_h_phedict_cd = OrderedDict()
+        n2v_f_phedict_cd = OrderedDict() ## here
         
         print("updating concepts for each phenotyping algorithm")
         for phe in unique_phe:
-            f_intersection = n2v_f_all_concepts.intersection(set(self.condition_phe[phe]))
-            h_intersection = n2v_h_all_concepts.intersection(set(self.condition_phe[phe]))
+            f_intersection_c = n2v_f_all_concepts.intersection(set(self.condition_phe[phe]))
+            h_intersection_c = n2v_h_all_concepts.intersection(set(self.condition_phe[phe]))
+            f_intersection_d = n2v_f_all_concepts.intersection(set(self.drug_phe[phe]))
+            h_intersection_d = n2v_h_all_concepts.intersection(set(self.drug_phe[phe]))
             
-            f_combinations = list(itertools.combinations(list(f_intersection), 2))
-            h_combinations = list(itertools.combinations(list(h_intersection), 2))
+            f_combinations_c = list(itertools.combinations(list(f_intersection_c), 2))
+            h_combinations_c = list(itertools.combinations(list(h_intersection_c), 2))
+            f_combinations_d = list(itertools.combinations(list(f_intersection_d), 2))
+            h_combinations_d = list(itertools.combinations(list(h_intersection_d), 2))
+            f_combinations_cd = list(itertools.product(list(f_intersection_c), list(f_intersection_d)))
+            h_combinations_cd = list(itertools.product(list(h_intersection_c), list(h_intersection_d)))
             
-            n2v_f_phedict.update({phe : f_combinations})
-            n2v_h_phedict.update({phe : h_combinations})
+            n2v_f_phedict_c.update({phe : f_combinations_c})
+            n2v_h_phedict_c.update({phe : h_combinations_c})
+            n2v_f_phedict_d.update({phe : f_combinations_d})
+            n2v_h_phedict_d.update({phe : h_combinations_d})
+            n2v_f_phedict_cd.update({phe : f_combinations_cd})
+            n2v_h_phedict_cd.update({phe : h_combinations_cd})
         
-        self.n2v_phedict.update({"n2v_hierarchical" : n2v_h_phedict})
-        self.n2v_phedict.update({"n2v_full" : n2v_f_phedict})
+        self.n2v_phedict.update({"n2v_hierarchical_c" : n2v_h_phedict_c})
+        self.n2v_phedict.update({"n2v_full_c" : n2v_f_phedict_c})
+        self.n2v_phedict.update({"n2v_hierarchical_d" : n2v_h_phedict_d})
+        self.n2v_phedict.update({"n2v_full_d" : n2v_f_phedict_d})
+        self.n2v_phedict.update({"n2v_hierarchical_cd" : n2v_h_phedict_cd})
+        self.n2v_phedict.update({"n2v_full_cd" : n2v_f_phedict_cd})
         
     def computeSim_n2v(self):
         unique_phe = list(self.condition_phe.keys())
-        sims_f = OrderedDict()
-        sims_h = OrderedDict()
+        sims_f_c = OrderedDict()
+        sims_h_c = OrderedDict()
+        sims_f_d = OrderedDict()
+        sims_h_d = OrderedDict()
+        sims_f_cd = OrderedDict()
+        sims_h_cd = OrderedDict()
         
-        print("computing cosine similarities of n2v_full")
+        print("computing cosine similarities of n2v_full_c")
         for phe in unique_phe:
-            sims = computeSims_n2v(self.n2v_phedict["n2v_full"][phe], self.n2v_full)
-            sims_f.update({phe : sims})
-            
-        print("computing cosine similarities of n2v_hierarchical")
+            sims = computeSims_n2v(self.n2v_phedict["n2v_full_c"][phe], self.n2v_full)
+            sims_f_c.update({phe : sims})
+
+        print("computing cosine similarities of n2v_full_d")
         for phe in unique_phe:
-            sims = computeSims_n2v(self.n2v_phedict["n2v_hierarchical"][phe], self.n2v_hierarchical)
-            sims_h.update({phe : sims})
+            sims = computeSims_n2v(self.n2v_phedict["n2v_full_d"][phe], self.n2v_full)
+            sims_f_d.update({phe : sims})
+
+        print("computing cosine similarities of n2v_full_cd")
+        for phe in unique_phe:
+            sims = computeSims_n2v(self.n2v_phedict["n2v_full_cd"][phe], self.n2v_full)
+            sims_f_cd.update({phe : sims})
             
-        self.n2v_sims["sims_full"] = sims_f
-        self.n2v_sims["sims_hierarchical"] = sims_h
+        print("computing cosine similarities of n2v_hierarchical_c")
+        for phe in unique_phe:
+            sims = computeSims_n2v(self.n2v_phedict["n2v_hierarchical_c"][phe], self.n2v_hierarchical)
+            sims_h_c.update({phe : sims})
+
+        print("computing cosine similarities of n2v_hierarchical_d")
+        for phe in unique_phe:
+            sims = computeSims_n2v(self.n2v_phedict["n2v_hierarchical_d"][phe], self.n2v_hierarchical)
+            sims_h_d.update({phe : sims})
+
+        print("computing cosine similarities of n2v_hierarchical_cd")
+        for phe in unique_phe:
+            sims = computeSims_n2v(self.n2v_phedict["n2v_hierarchical_cd"][phe], self.n2v_hierarchical)
+            sims_h_cd.update({phe : sims})
+            
+        self.n2v_sims["sims_full_c"] = sims_f_c
+        self.n2v_sims["sims_hierarchical_c"] = sims_h_c
+        self.n2v_sims["sims_full_d"] = sims_f_d
+        self.n2v_sims["sims_hierarchical_d"] = sims_h_d
+        self.n2v_sims["sims_full_cd"] = sims_f_cd
+        self.n2v_sims["sims_hierarchical_cd"] = sims_h_cd
             
     def getRandomSim_n2v(self):
         unique_phe = list(self.condition_phe.keys())
-        n2v_full_rsim = OrderedDict()
-        n2v_hierarchical_rsim = OrderedDict()
+        n2v_full_rsim_c = OrderedDict()
+        n2v_hierarchical_rsim_c = OrderedDict()
+        n2v_full_rsim_d = OrderedDict()
+        n2v_hierarchical_rsim_d = OrderedDict()
+        n2v_full_rsim_cd = OrderedDict()
+        n2v_hierarchical_rsim_cd = OrderedDict()
         
-        print("computing cosine similarities for random pairs of n2v_full")
+        print("computing cosine similarities for random pairs of n2v_full_c")
         for phe in unique_phe:
-            pair_num = len(self.n2v_sims["sims_full"][phe])
+            pair_num = len(self.n2v_sims["sims_full_c"][phe])
             if pair_num != 0:
                 random_sims = generateRandomSim_n2v(pair_num, self.n2v_full)
             else:
                 random_sims = []
-            n2v_full_rsim.update({phe : random_sims})
+            n2v_full_rsim_c.update({phe : random_sims})
             
-        print("computing cosine similarities for random pairs of n2v_hierarchical")
+        print("computing cosine similarities for random pairs of n2v_hierarchical_c")
         for phe in unique_phe:
-            pair_num = len(self.n2v_sims["sims_hierarchical"][phe])
+            pair_num = len(self.n2v_sims["sims_hierarchical_c"][phe])
             if pair_num != 0:
                 random_sims = generateRandomSim_n2v(pair_num, self.n2v_hierarchical)
             else:
                 random_sims = []
-            n2v_hierarchical_rsim.update({phe : random_sims})
+            n2v_hierarchical_rsim_c.update({phe : random_sims})
+
+        print("computing cosine similarities for random pairs of n2v_full_d")
+        for phe in unique_phe:
+            pair_num = len(self.n2v_sims["sims_full_d"][phe])
+            if pair_num != 0:
+                random_sims = generateRandomSim_n2v(pair_num, self.n2v_full)
+            else:
+                random_sims = []
+            n2v_full_rsim_d.update({phe : random_sims})
+            
+        print("computing cosine similarities for random pairs of n2v_hierarchical_d")
+        for phe in unique_phe:
+            pair_num = len(self.n2v_sims["sims_hierarchical_d"][phe])
+            if pair_num != 0:
+                random_sims = generateRandomSim_n2v(pair_num, self.n2v_hierarchical)
+            else:
+                random_sims = []
+            n2v_hierarchical_rsim_d.update({phe : random_sims})
         
-        self.n2v_rsims["rsims_full"] = n2v_full_rsim
-        self.n2v_rsims["rsims_hierarchical"] = n2v_hierarchical_rsim
+        print("computing cosine similarities for random pairs of n2v_full_cd")
+        for phe in unique_phe:
+            pair_num = len(self.n2v_sims["sims_full_cd"][phe])
+            if pair_num != 0:
+                random_sims = generateRandomSim_n2v(pair_num, self.n2v_full)
+            else:
+                random_sims = []
+            n2v_full_rsim_cd.update({phe : random_sims})
+            
+        print("computing cosine similarities for random pairs of n2v_hierarchical_cd")
+        for phe in unique_phe:
+            pair_num = len(self.n2v_sims["sims_hierarchical_cd"][phe])
+            if pair_num != 0:
+                random_sims = generateRandomSim_n2v(pair_num, self.n2v_hierarchical)
+            else:
+                random_sims = []
+            n2v_hierarchical_rsim_cd.update({phe : random_sims})
+
+        self.n2v_rsims["rsims_full_c"] = n2v_full_rsim_c
+        self.n2v_rsims["rsims_hierarchical_c"] = n2v_hierarchical_rsim_c
+        self.n2v_rsims["rsims_full_d"] = n2v_full_rsim_d
+        self.n2v_rsims["rsims_hierarchical_d"] = n2v_hierarchical_rsim_d
+        self.n2v_rsims["rsims_full_cd"] = n2v_full_rsim_cd
+        self.n2v_rsims["rsims_hierarchical_cd"] = n2v_hierarchical_rsim_cd
         
     def computeSim_glove(self):
         unique_phe = list(self.condition_phe.keys())
-        sims_5yrs = OrderedDict()
-        sims_visit = OrderedDict()
+        sims_5yrs_c = OrderedDict()
+        sims_visit_c = OrderedDict()
+        sims_5yrs_d = OrderedDict()
+        sims_visit_d = OrderedDict()
+        sims_5yrs_cd = OrderedDict()
+        sims_visit_cd = OrderedDict()
         
         print("computing cosine similarities of glove_5yrs")
         for phe in unique_phe:
-            sims = computeSims(self.glove_phedict["glove_5yrs"][phe], self.glove_emb_matrix["glove_5yrs"], 
+            sims_c = computeSims(self.glove_phedict["glove_5yrs_c"][phe], self.glove_emb_matrix["glove_5yrs"], 
                                self.glove_concept2id["concept2id_5yrs"])
-            sims_5yrs.update({phe : sims})
+            sims_d = computeSims(self.glove_phedict["glove_5yrs_d"][phe], self.glove_emb_matrix["glove_5yrs"], 
+                               self.glove_concept2id["concept2id_5yrs"])
+            sims_cd = computeSims(self.glove_phedict["glove_5yrs_cd"][phe], self.glove_emb_matrix["glove_5yrs"], 
+                               self.glove_concept2id["concept2id_5yrs"])
+            sims_5yrs_c.update({phe : sims_c})
+            sims_5yrs_d.update({phe : sims_d})
+            sims_5yrs_cd.update({phe : sims_cd})
             
         print("computing cosine similarities of glove_visit")
         for phe in unique_phe:
-            sims = computeSims(self.glove_phedict["glove_visit"][phe], self.glove_emb_matrix["glove_visit"], 
+            sims_c = computeSims(self.glove_phedict["glove_visit_c"][phe], self.glove_emb_matrix["glove_visit"], 
                                self.glove_concept2id["concept2id_visit"])
-            sims_visit.update({phe : sims})
+            sims_d = computeSims(self.glove_phedict["glove_visit_d"][phe], self.glove_emb_matrix["glove_visit"], 
+                               self.glove_concept2id["concept2id_visit"])
+            sims_cd = computeSims(self.glove_phedict["glove_visit_cd"][phe], self.glove_emb_matrix["glove_visit"], 
+                               self.glove_concept2id["concept2id_visit"])
+            sims_visit_c.update({phe : sims_c})
+            sims_visit_d.update({phe : sims_d})
+            sims_visit_cd.update({phe : sims_cd})
             
-        self.glove_sims["sims_5yrs"] = sims_5yrs
-        self.glove_sims["sims_visit"] = sims_visit
+        self.glove_sims["sims_5yrs_c"] = sims_5yrs_c
+        self.glove_sims["sims_visit_c"] = sims_visit_c
+        self.glove_sims["sims_5yrs_d"] = sims_5yrs_d
+        self.glove_sims["sims_visit_d"] = sims_visit_d
+        self.glove_sims["sims_5yrs_cd"] = sims_5yrs_cd
+        self.glove_sims["sims_visit_cd"] = sims_visit_cd
         
     def getRandomSim_glove(self):
         unique_phe = list(self.condition_phe.keys())
-        glove_5yrs_rsim = OrderedDict()
-        glove_visit_rsim = OrderedDict()
+        glove_5yrs_rsim_c = OrderedDict()
+        glove_visit_rsim_c = OrderedDict()
+        glove_5yrs_rsim_d = OrderedDict()
+        glove_visit_rsim_d = OrderedDict()
+        glove_5yrs_rsim_cd = OrderedDict()
+        glove_visit_rsim_cd = OrderedDict() 
         
-        print("computing cosine similarities for random pairs of glove_5yrs")
+        print("computing cosine similarities for random pairs of glove_5yrs_c")
         for phe in unique_phe:
-            pair_num = len(self.glove_sims["sims_5yrs"][phe])
+            pair_num = len(self.glove_sims["sims_5yrs_c"][phe])
             if pair_num != 0:
                 random_sims = generateRandomSim_glove(pair_num, self.glove_emb_matrix["glove_5yrs"])
             else:
                 random_sims = []
-            glove_5yrs_rsim.update({phe : random_sims})
+            glove_5yrs_rsim_c.update({phe : random_sims})
             
-        print("computing cosine similarities for random pairs of glove_visit")
+        print("computing cosine similarities for random pairs of glove_visit_c")
         for phe in unique_phe:
-            pair_num = len(self.glove_sims["sims_visit"][phe])
+            pair_num = len(self.glove_sims["sims_visit_c"][phe])
             if pair_num != 0:
                 random_sims = generateRandomSim_glove(pair_num, self.glove_emb_matrix["glove_visit"])
             else:
                 random_sims = []
-            glove_visit_rsim.update({phe : random_sims})
+            glove_visit_rsim_c.update({phe : random_sims})
+
+        print("computing cosine similarities for random pairs of glove_5yrs_d")
+        for phe in unique_phe:
+            pair_num = len(self.glove_sims["sims_5yrs_d"][phe])
+            if pair_num != 0:
+                random_sims = generateRandomSim_glove(pair_num, self.glove_emb_matrix["glove_5yrs"])
+            else:
+                random_sims = []
+            glove_5yrs_rsim_d.update({phe : random_sims})
+            
+        print("computing cosine similarities for random pairs of glove_visit_d")
+        for phe in unique_phe:
+            pair_num = len(self.glove_sims["sims_visit_c"][phe])
+            if pair_num != 0:
+                random_sims = generateRandomSim_glove(pair_num, self.glove_emb_matrix["glove_visit"])
+            else:
+                random_sims = []
+            glove_visit_rsim_d.update({phe : random_sims})
+    
+        print("computing cosine similarities for random pairs of glove_5yrs_cd")
+        for phe in unique_phe:
+            pair_num = len(self.glove_sims["sims_5yrs_cd"][phe])
+            if pair_num != 0:
+                random_sims = generateRandomSim_glove(pair_num, self.glove_emb_matrix["glove_5yrs"])
+            else:
+                random_sims = []
+            glove_5yrs_rsim_cd.update({phe : random_sims})
+            
+        print("computing cosine similarities for random pairs of glove_visit_cd")
+        for phe in unique_phe:
+            pair_num = len(self.glove_sims["sims_visit_cd"][phe])
+            if pair_num != 0:
+                random_sims = generateRandomSim_glove(pair_num, self.glove_emb_matrix["glove_visit"])
+            else:
+                random_sims = []
+            glove_visit_rsim_cd.update({phe : random_sims})
         
-        self.glove_rsims["rsims_5yrs"] = glove_5yrs_rsim
-        self.glove_rsims["rsims_visit"] = glove_visit_rsim        
+        self.glove_rsims["rsims_5yrs_c"] = glove_5yrs_rsim_c
+        self.glove_rsims["rsims_visit_c"] = glove_visit_rsim_c    
+        self.glove_rsims["rsims_5yrs_d"] = glove_5yrs_rsim_d
+        self.glove_rsims["rsims_visit_d"] = glove_visit_rsim_d
+        self.glove_rsims["rsims_5yrs_cd"] = glove_5yrs_rsim_cd
+        self.glove_rsims["rsims_visit_cd"] = glove_visit_rsim_cd    
         
     def getAvgSim(self):
         unique_phe = list(self.condition_phe.keys())
         
-        self.avg_sims["avgsim_n2v_full"] = computeAvgSim(self.n2v_sims["sims_full"])
-        self.avg_sims["avgsim_n2v_hierarchical"] = computeAvgSim(self.n2v_sims["sims_hierarchical"])
-        self.avg_sims["avgsim_glove_5yrs"] = computeAvgSim(self.glove_sims["sims_5yrs"])
-        self.avg_sims["avgsim_glove_visit"] = computeAvgSim(self.glove_sims["sims_visit"])
-        
-        self.avg_rsims["avgrsim_n2v_full"] = computeAvgSim(self.n2v_rsims["rsims_full"])
-        self.avg_rsims["avgrsim_n2v_hierarchical"] = computeAvgSim(self.n2v_rsims["rsims_hierarchical"])
-        self.avg_rsims["avgrsim_glove_5yrs"] = computeAvgSim(self.glove_rsims["rsims_5yrs"])
-        self.avg_rsims["avgrsim_glove_visit"] = computeAvgSim(self.glove_rsims["rsims_visit"])
+        self.avg_sims["avgsim_n2v_full_c"] = computeAvgSim(self.n2v_sims["sims_full_c"])
+        self.avg_sims["avgsim_n2v_hierarchical_c"] = computeAvgSim(self.n2v_sims["sims_hierarchical_c"])
+        self.avg_sims["avgsim_n2v_full_d"] = computeAvgSim(self.n2v_sims["sims_full_d"])
+        self.avg_sims["avgsim_n2v_hierarchical_d"] = computeAvgSim(self.n2v_sims["sims_hierarchical_d"])
+        self.avg_sims["avgsim_n2v_full_cd"] = computeAvgSim(self.n2v_sims["sims_full_cd"])
+        self.avg_sims["avgsim_n2v_hierarchical_cd"] = computeAvgSim(self.n2v_sims["sims_hierarchical_cd"])
 
-        self.avg_total["avgsim_n2v_full_total"] = computeAvgSim_total(self.n2v_sims["sims_full"])
-        self.avg_total["avgsim_n2v_hierarchical_total"] = computeAvgSim_total(self.n2v_sims["sims_hierarchical"])
-        self.avg_total["avgsim_glove_5yrs_total"] = computeAvgSim_total(self.glove_sims["sims_5yrs"])
-        self.avg_total["avgsim_glove_visit_total"] = computeAvgSim_total(self.glove_sims["sims_visit"])
+        self.avg_sims["avgsim_glove_5yrs_c"] = computeAvgSim(self.glove_sims["sims_5yrs_c"])
+        self.avg_sims["avgsim_glove_visit_c"] = computeAvgSim(self.glove_sims["sims_visit_c"])
+        self.avg_sims["avgsim_glove_5yrs_d"] = computeAvgSim(self.glove_sims["sims_5yrs_d"])
+        self.avg_sims["avgsim_glove_visit_d"] = computeAvgSim(self.glove_sims["sims_visit_d"])
+        self.avg_sims["avgsim_glove_5yrs_cd"] = computeAvgSim(self.glove_sims["sims_5yrs_cd"])
+        self.avg_sims["avgsim_glove_visit_cd"] = computeAvgSim(self.glove_sims["sims_visit_cd"])
         
-        self.avg_total["avgrsim_n2v_full_total"] = computeAvgSim_total(self.n2v_rsims["rsims_full"])
-        self.avg_total["avgrsim_n2v_hierarchical_total"] = computeAvgSim_total(self.n2v_rsims["rsims_hierarchical"])
-        self.avg_total["avgrsim_glove_5yrs_total"] = computeAvgSim_total(self.glove_rsims["rsims_5yrs"])
-        self.avg_total["avgrsim_glove_visit_total"] = computeAvgSim_total(self.glove_rsims["rsims_visit"])
+        self.avg_rsims["avgrsim_n2v_full_c"] = computeAvgSim(self.n2v_rsims["rsims_full_c"])
+        self.avg_rsims["avgrsim_n2v_hierarchical_c"] = computeAvgSim(self.n2v_rsims["rsims_hierarchical_c"])
+        self.avg_rsims["avgrsim_n2v_full_d"] = computeAvgSim(self.n2v_rsims["rsims_full_d"])
+        self.avg_rsims["avgrsim_n2v_hierarchical_d"] = computeAvgSim(self.n2v_rsims["rsims_hierarchical_d"])
+        self.avg_rsims["avgrsim_n2v_full_cd"] = computeAvgSim(self.n2v_rsims["rsims_full_cd"])
+        self.avg_rsims["avgrsim_n2v_hierarchical_cd"] = computeAvgSim(self.n2v_rsims["rsims_hierarchical_cd"])
+
+        self.avg_rsims["avgrsim_glove_5yrs_c"] = computeAvgSim(self.glove_rsims["rsims_5yrs_c"])
+        self.avg_rsims["avgrsim_glove_visit_c"] = computeAvgSim(self.glove_rsims["rsims_visit_c"])
+        self.avg_rsims["avgrsim_glove_5yrs_d"] = computeAvgSim(self.glove_rsims["rsims_5yrs_d"])
+        self.avg_rsims["avgrsim_glove_visit_d"] = computeAvgSim(self.glove_rsims["rsims_visit_d"])
+        self.avg_rsims["avgrsim_glove_5yrs_cd"] = computeAvgSim(self.glove_rsims["rsims_5yrs_cd"])
+        self.avg_rsims["avgrsim_glove_visit_cd"] = computeAvgSim(self.glove_rsims["rsims_visit_cd"])
+
+        self.avg_total["avgsim_n2v_full_total_c"] = computeAvgSim_total(self.n2v_sims["sims_full_c"])
+        self.avg_total["avgsim_n2v_hierarchical_total_c"] = computeAvgSim_total(self.n2v_sims["sims_hierarchical_c"])
+        self.avg_total["avgsim_n2v_full_total_d"] = computeAvgSim_total(self.n2v_sims["sims_full_d"])
+        self.avg_total["avgsim_n2v_hierarchical_total_d"] = computeAvgSim_total(self.n2v_sims["sims_hierarchical_d"])
+        self.avg_total["avgsim_n2v_full_total_cd"] = computeAvgSim_total(self.n2v_sims["sims_full_cd"])
+        self.avg_total["avgsim_n2v_hierarchical_total_cd"] = computeAvgSim_total(self.n2v_sims["sims_hierarchical_cd"])
+
+        self.avg_total["avgsim_glove_5yrs_total_c"] = computeAvgSim_total(self.glove_sims["sims_5yrs_c"])
+        self.avg_total["avgsim_glove_visit_total_c"] = computeAvgSim_total(self.glove_sims["sims_visit_c"])
+        self.avg_total["avgsim_glove_5yrs_total_d"] = computeAvgSim_total(self.glove_sims["sims_5yrs_d"])
+        self.avg_total["avgsim_glove_visit_total_d"] = computeAvgSim_total(self.glove_sims["sims_visit_d"])
+        self.avg_total["avgsim_glove_5yrs_total_cd"] = computeAvgSim_total(self.glove_sims["sims_5yrs_cd"])
+        self.avg_total["avgsim_glove_visit_total_cd"] = computeAvgSim_total(self.glove_sims["sims_visit_cd"])
+        
+        self.avg_total["avgrsim_n2v_full_total_c"] = computeAvgSim_total(self.n2v_rsims["rsims_full_c"])
+        self.avg_total["avgrsim_n2v_hierarchical_total_c"] = computeAvgSim_total(self.n2v_rsims["rsims_hierarchical_c"])
+        self.avg_total["avgrsim_n2v_full_total_d"] = computeAvgSim_total(self.n2v_rsims["rsims_full_d"])
+        self.avg_total["avgrsim_n2v_hierarchical_total_d"] = computeAvgSim_total(self.n2v_rsims["rsims_hierarchical_d"])
+        self.avg_total["avgrsim_n2v_full_total_cd"] = computeAvgSim_total(self.n2v_rsims["rsims_full_cd"])
+        self.avg_total["avgrsim_n2v_hierarchical_total_cd"] = computeAvgSim_total(self.n2v_rsims["rsims_hierarchical_cd"])
+
+        self.avg_total["avgrsim_glove_5yrs_total_c"] = computeAvgSim_total(self.glove_rsims["rsims_5yrs_c"])
+        self.avg_total["avgrsim_glove_visit_total_c"] = computeAvgSim_total(self.glove_rsims["rsims_visit_c"])
+        self.avg_total["avgrsim_glove_5yrs_total_d"] = computeAvgSim_total(self.glove_rsims["rsims_5yrs_d"])
+        self.avg_total["avgrsim_glove_visit_total_d"] = computeAvgSim_total(self.glove_rsims["rsims_visit_d"])
+        self.avg_total["avgrsim_glove_5yrs_total_cd"] = computeAvgSim_total(self.glove_rsims["rsims_5yrs_cd"])
+        self.avg_total["avgrsim_glove_visit_total_cd"] = computeAvgSim_total(self.glove_rsims["rsims_visit_cd"])
         
         self.avg_sims["phenotyping_algorithm"] = unique_phe
         self.avg_rsims["phenotyping_algorithm"] = unique_phe
@@ -243,7 +451,6 @@ class MCREvaluation():
         self.avgsim_df["sims"].to_csv(os.path.join(self.config.save_dir, "avgsim.csv"))
         self.avgsim_df["rsims"].to_csv(os.path.join(self.config.save_dir, "avgrsim.csv"))
         self.avgsim_total.to_csv(os.path.join(self.config.save_dir, "avgsim_total.csv"))
-
 
 def dblToStr(dbl_list):
     int_list = list(map(int, dbl_list))
