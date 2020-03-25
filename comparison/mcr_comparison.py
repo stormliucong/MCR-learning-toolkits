@@ -94,7 +94,7 @@ class MCREvaluation():
             yrs_combinations_d = list(itertools.combinations(list(yrs_intersection_d), 2))
             visit_combinations_d = list(itertools.combinations(list(visit_intersection_d), 2))
             yrs_combinations_cd = list(itertools.product(list(yrs_intersection_c), list(yrs_intersection_d)))
-            visit_combinations_cd = list(itertools.product(list(visit_combinations_c), list(visit_combinations_d)))
+            visit_combinations_cd = list(itertools.product(list(visit_intersection_c), list(visit_intersection_d)))
             
             glove_5yrs_phedict_c.update({phe : yrs_combinations_c})
             glove_visit_phedict_c.update({phe : visit_combinations_c})
@@ -122,25 +122,30 @@ class MCREvaluation():
         n2v_h_phedict_cd = OrderedDict()
         n2v_f_phedict_cd = OrderedDict() ## here
         
-        print("updating concepts for each phenotyping algorithm")
+        print("updating concepts of n2v_full for each phenotyping algorithm")
         for phe in unique_phe:
             f_intersection_c = n2v_f_all_concepts.intersection(set(self.condition_phe[phe]))
-            h_intersection_c = n2v_h_all_concepts.intersection(set(self.condition_phe[phe]))
             f_intersection_d = n2v_f_all_concepts.intersection(set(self.drug_phe[phe]))
-            h_intersection_d = n2v_h_all_concepts.intersection(set(self.drug_phe[phe]))
             
             f_combinations_c = list(itertools.combinations(list(f_intersection_c), 2))
-            h_combinations_c = list(itertools.combinations(list(h_intersection_c), 2))
             f_combinations_d = list(itertools.combinations(list(f_intersection_d), 2))
-            h_combinations_d = list(itertools.combinations(list(h_intersection_d), 2))
             f_combinations_cd = list(itertools.product(list(f_intersection_c), list(f_intersection_d)))
-            h_combinations_cd = list(itertools.product(list(h_intersection_c), list(h_intersection_d)))
             
             n2v_f_phedict_c.update({phe : f_combinations_c})
-            n2v_h_phedict_c.update({phe : h_combinations_c})
             n2v_f_phedict_d.update({phe : f_combinations_d})
-            n2v_h_phedict_d.update({phe : h_combinations_d})
             n2v_f_phedict_cd.update({phe : f_combinations_cd})
+
+        print("updating concepts of n2v_hierarchocal for each phenotyping algorithm")
+        for phe in unique_phe:
+            h_intersection_c = n2v_h_all_concepts.intersection(set(self.condition_phe[phe]))
+            h_intersection_d = n2v_h_all_concepts.intersection(set(self.drug_phe[phe]))
+
+            h_combinations_c = list(itertools.combinations(list(h_intersection_c), 2))
+            h_combinations_d = list(itertools.combinations(list(h_intersection_d), 2))
+            h_combinations_cd = list(itertools.product(list(h_intersection_c), list(h_intersection_d)))
+
+            n2v_h_phedict_c.update({phe : h_combinations_c})
+            n2v_h_phedict_d.update({phe : h_combinations_d})
             n2v_h_phedict_cd.update({phe : h_combinations_cd})
         
         self.n2v_phedict.update({"n2v_hierarchical_c" : n2v_h_phedict_c})
